@@ -1,0 +1,10 @@
+# check error function
+function check_error() {
+    local return_code=$*
+    if [ $return_code -eq 0 ]; then
+        log_message "# Execution: OK"
+    else
+        log_message "# Execution: ERROR"
+        exit 1
+    fi
+}
