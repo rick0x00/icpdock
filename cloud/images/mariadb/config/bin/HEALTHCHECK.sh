@@ -114,35 +114,33 @@ exec_tests() {
         fi
     }
 
-    log_message " INICIANDO TESTES..."
-    # Loop de tentativas
+    log_message " STARTING TESTS..."
+    # loop of attempts
     for attempt in {1..3}; do
         log_message " Tentativa ${attempt}..."
-        # Reinicializar SUM_STATUS para cada tentativa
+        # restart SUM_STATUS to always step
         SUM_STATUS=0
 
-        # Verificacao do processo Nginx
+        # check process mariadb
         check_process "mariadb"
 
-        # Verificacao do processo Supervisor
+        # check process Supervisor
         #check_process "supervisord"
         check_process "python"
 
-
-        # Verificacao de portas: mariadb
+        # check ports: mariadb
         #check_port "localhost" "3306"
-        check_port "127.0.0.1" "3306"
+        check_port "127.0.0.1" "$3306"
 
 
-
-        # Se o somatorio dos codigos de retorno for 0, tudo esta OK, entao saimos do loop
+        # if sum of return test is ZERO, exit of loop
         if [ "$SUM_STATUS" -eq 0 ]; then
-            log_message " SUCESSO EM TODOS OS TESTES..."
+            log_message " SUCESS ON ALL TESTS..."
             break
         fi
-        log_message " FALHA EM ALGUM TESTE. REINICIANDO TESTES..."
+        log_message " FAIL ON TESTS, RESTARTING..."
 
-        # Esperar antes de tentar novamente
+        # wait before next test
         sleep "$WAIT_TIME"
     done
 }
@@ -178,7 +176,7 @@ else
     # case of use on bypass
 
     # false value by bypass
-    log_message " REGISTRANDO '0' EM <$STATUS_LOG_FILE>"
+    log_message " REGISTERING '0' ON <$STATUS_LOG_FILE>"
 
     echo "0" > "$STATUS_LOG_FILE"
 fi
