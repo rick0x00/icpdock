@@ -128,7 +128,7 @@ exec_tests() {
         #check_port "localhost" "9000"
         check_port "127.0.0.1" "9000"
 
-
+    
         # check HTTP service
         #check_url "http://localhost:$HTTP_PORT"
         check_url "http://127.0.0.1:9000"
