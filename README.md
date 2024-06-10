@@ -13,3 +13,4 @@ this content provider is projected to small business, necessary pre requisites i
 - turn possible make and restore fast and utils backups;
 - turn possible implement High availability(HA) for the application never stop, using k8s, DIY Load Balances and fail over, multiple VPS's, sync data... etc...
 
+    

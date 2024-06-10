@@ -17,4 +17,7 @@
 - [ ] GIT
 - [ ] IDS
 - [ ] IPS
+- [ ] WAF(Web application firewall)
+- [ ] DBMS(PHPmyAdmin)
+- [ ] E-Mail
 
