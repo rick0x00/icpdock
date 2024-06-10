@@ -1,0 +1,100 @@
+#version: '3.6'
+
+#######################################################
+#####                    NETWORK                  #####
+#######################################################
+networks:
+
+################# NETWORK TO PUBLIC SERVERS
+  net_srv_public:
+    #enable_ipv6: true
+    driver: ${DOCKER_NETWORK_SRV_PUBLIC_DRIVER_MODE}
+    internal: false
+    driver_opts:
+      parent: ${DOCKER_NETWORK_SRV_PUBLIC_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "${HOST_BINDING_IPV4}"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_SRV_PUBLIC_SUBNET_IPV4}
+          gateway: ${DOCKER_NETWORK_SRV_PUBLIC_GATEWAY_IPV4}
+        #- subnet: ${DOCKER_NETWORK_SRV_PUBLIC_SUBNET_IPV6}
+        #  gateway: ${DOCKER_NETWORK_SRV_PUBLIC_GATEWAY_IPV6}
+
+################# NETWORK TO PRIVATE SERVERS
+  net_srv_private:
+    enable_ipv6: false
+    driver: ${DOCKER_NETWORK_SRV_PRIVATE_DRIVER_MODE}
+    internal: false
+    driver_opts:
+      #parent: ${DOCKER_NETWORK_SRV_PRIVATE_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      #com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_SRV_PRIVATE_SUBNET_IPV4}
+          gateway: ${DOCKER_NETWORK_SRV_PRIVATE_GATEWAY_IPV4}
+
+
+
+
+#######################################################
+#####                   VOLUMES                   #####
+#######################################################
+
+volumes:
+
+# NGINX(volume) ############################################
+  nginx_etc_nginx:
+  nginx_etc_supervisor:
+  nginx_srv_config:
+  nginx_usr_local_bin:
+  nginx_root:
+  nginx_var_log:
+
+#######################################################
+#####                   SERVICES                  #####
+#######################################################
+
+services:
+
+# NGINX(service) ############################################
+  nginx:
+    container_name: nginx
+    hostname: nginx
+    build:
+      context: ${IMAGE_ROOT_PATH}/nginx
+    restart: always
+    environment:
+      #DNS_SERVER_IPS: ${NGINX_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${NGINX_DNS_SERVER_DOMAIN}
+      SITE_HTTP_PORT: ${NGINX_SITE_HTTP_PORT}
+      SITE_HTTPS_PORT: ${NGINX_SITE_HTTPS_PORT}
+    volumes:
+      - nginx_etc_nginx:/etc/nginx/
+      - nginx_etc_supervisor:/etc/supervisor/
+      - nginx_srv_config:/srv/config
+      - nginx_usr_local_bin:/usr/local/bin
+      - nginx_root:/root
+      - nginx_var_log:/var/log
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/backups/:/var/backups/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-available/:/etc/nginx/sites-available/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "80:${NGINX_SITE_HTTP_PORT}/tcp" # web port
+      - "443:${NGINX_SITE_HTTPS_PORT}/tcp" # web port
+      - "9000:9000/tcp" # portainer web port
+    networks:
+      net_srv_public:
+        ipv4_address: ${NGINX_DOCKER_NETWORK_SRV_PUBLIC_IPV4}
+      net_srv_private:
+        ipv4_address: ${NGINX_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
