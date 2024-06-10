@@ -1,0 +1,216 @@
+#version: '3.6'
+
+#######################################################
+#####                    NETWORK                  #####
+#######################################################
+networks:
+
+################# NETWORK TO PRIVATE SERVERS - BRIDGE TO NETWORK net_srv_public on border commposer ambient
+  net_srv_private:
+    name: border_net_srv_private # this line is necessary to make a bridge
+    external: true # this line is necessary to make a bridge
+    enable_ipv6: false
+    driver: ${DOCKER_NETWORK_SRV_PRIVATE_DRIVER_MODE}
+    internal: false
+    driver_opts:
+      #parent: ${DOCKER_NETWORK_SRV_PRIVATE_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      #com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_SRV_PRIVATE_SUBNET_IPV4}
+          gateway: ${DOCKER_NETWORK_SRV_PRIVATE_GATEWAY_IPV4}
+
+
+################# NETWORK TO BACKEND COMMUNICATIONS
+  net_backend:
+    enable_ipv6: false
+    driver: ${DOCKER_NETWORK_BACKEND_DRIVER_MODE}
+    internal: true
+    driver_opts:
+      #parent: ${DOCKER_NETWORK_BACKEND_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+        #com.docker.network.bridge.enable_ip_masquerade: "true"
+        #com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_BACKEND_SUBNET_IPV4}
+        # gateway: ${DOCKER_NETWORK_BACKEND_GATEWAY_IPV4}
+
+
+
+#######################################################
+#####                   VOLUMES                   #####
+#######################################################
+
+volumes:
+
+# mariadb_wordpress(volume) ############################################
+  mariadb_wordpress_var_lib_mysql:
+  mariadb_wordpress_root:
+  mariadb_wordpress_etc_supervisor:
+  mariadb_wordpress_usr_local_bin:
+  mariadb_wordpress_etc_mysql:
+  mariadb_wordpress_var_log:
+  mariadb_wordpress_var_spool_cron:
+
+# wordpress(volume) ############################################
+  wordpress_root:
+  wordpress_usr_local_bin:
+  wordpress_etc_supervisor:
+  wordpress_srv_config:
+  wordpress_var_log:
+  #wordpress_var_www:
+  wordpress_etc_apache2:
+  wordpress_var_spool_cron:
+
+# certbot(volume) ############################################
+  certbot_etc_supervisor:
+  certbot_srv_config:
+  certbot_var_log:
+  certbot_var_spool_cron:
+  certbot_usr_local_bin:
+  certbot_root:
+  #wordpress_var_www:
+  #certbot_etc_letsencrypt:
+
+    
+#######################################################
+#####                   SERVICES                  #####
+#######################################################
+
+services:
+
+# mariadb_wordpress(service) ############################################
+  mariadb_wordpress:
+    container_name: ${CLIENT_NAME}-mariadb
+    hostname: ${CLIENT_NAME}-mariadb
+    build:
+      context: ${IMAGE_ROOT_PATH}/mariadb
+    restart: always
+    command:
+      - --max_allowed_packet=512MB
+      - --innodb_log_file_size=512M
+    environment:
+      #DNS_SERVER_IPS: ${MARIADB_WORDPRESS_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${MARIADB_WORDPRESS_DNS_SERVER_DOMAIN}
+      MYSQL_ROOT_PASSWORD: ${MARIADB_WORDPRESS_DATABASE_ROOT_PASS}
+      MARIADB_DATABASE: ${MARIADB_WORDPRESS_DATABASE}
+      MARIADB_USER: ${MARIADB_WORDPRESS_USER}
+      MARIADB_PASSWORD: ${MARIADB_WORDPRESS_PASSWORD}
+      #TZ: UTC
+    volumes:
+      #- mariadb_var_lib_mysql:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/lib/mysql/:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/backups/:/var/backups/
+      - mariadb_wordpress_root:/root/
+      - mariadb_wordpress_etc_supervisor:/etc/supervisor/
+      - mariadb_wordpress_usr_local_bin:/usr/local/bin/
+      - mariadb_wordpress_etc_mysql:/etc/mysql/
+      - mariadb_wordpress_var_log:/var/log/
+      - mariadb_wordpress_var_spool_cron:/var/spool/cron/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    #ports:
+    #  - "3306:3306" # PORT = 3306 , MySQL database
+    networks:
+      net_backend:
+        ipv4_address: ${MARIADB_WORDPRESS_DOCKER_NETWORK_BACKEND_IPV4}
+
+# wordpress(service) ############################################
+  wordpress:
+    container_name: ${CLIENT_NAME}-wordpress
+    hostname: ${CLIENT_NAME}-wordpress
+    build:
+      context: ${IMAGE_ROOT_PATH}/wordpress
+    depends_on:
+      - mariadb_wordpress
+    links:
+      - mariadb_wordpress
+    restart: always
+    environment:
+      #DNS_SERVER_IPS: ${WORDPRESS_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${WORDPRESS_DNS_SERVER_DOMAIN}
+      FORCE_RECONFIG: false
+      HEALTHCHECK_ENABLED: true
+      SYSTEM_NAME: wordpress
+      CLIENT_NAME: xpto
+      DATABASE_HOST: ${WORDPRESS_DATABASE_HOST}
+      DATABASE_CONFIG_MODE: ${WORDPRESS_DATABASE_CONFIG_MODE}
+      DATABASE_ADMIN_USER: ${WORDPRESS_DATABASE_ADMIN_USER}
+      DATABASE_ADMIN_PASS: ${WORDPRESS_DATABASE_ADMIN_PASS}
+      DATABASE_APP_USER: ${WORDPRESS_DATABASE_WORDPRESS_USER}
+      DATABASE_APP_PASS: ${WORDPRESS_DATABASE_WORDPRESS_PASS}
+      DATABASE_SCHEMA_NAME: ${WORDPRESS_DATABASE_NAME_WORDPRESS}
+      SITE_HTTP_PORT: ${WORDPRESS_SITE_HTTP_PORT}
+      SITE_HTTPS_PORT: ${WORDPRESS_SITE_HTTPS_PORT}  
+      SITE_SSL_ENABLED: ${WORDPRESS_SITE_SSL_ENABLED}
+      SITE_NAME: ${WORDPRESS_SITE_NAME}
+      SITE_DOMAIN: ${WORDPRESS_SITE_DOMAIN}
+    volumes:
+      - wordpress_root:/root/ # pouco importante, somente retencao de historico
+      - wordpress_usr_local_bin:/usr/local/bin/ 
+      - wordpress_etc_supervisor:/etc/supervisor/ # pouco importante, somente garantia dos inicializadores adequados
+      - wordpress_srv_config:/srv/config/ # pouco importante, garantia de scrips de inicializacao corretos
+      - wordpress_var_log:/var/log/
+      #- wordpress_var_www:/var/www/
+      #- wordpress_etc_apache2:/etc/apache2/
+      - wordpress_var_spool_cron:/var/spool/cron/
+      #- certbot_etc_letsencrypt:/etc/letsencrypt
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/etc/apache2/sites-enabled/:/etc/apache2/sites-enabled/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/etc/apache2/sites-available/:/etc/apache2/sites-available/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/backups/:/var/backups/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    extra_hosts:
+      - "mariadb_wordpress:${MARIADB_WORDPRESS_DOCKER_NETWORK_BACKEND_IPV4}"
+      - "${WORDPRESS_SITE_NAME}.domain.tld ${WORDPRESS_SITE_NAME}:${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}"
+      #- "${WORDPRESS_SITE_NAME}.domain.tld ${WORDPRESS_SITE_NAME}:${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV6}"
+    #dns:
+      #- ${DOMAIN_DNS_SERVER_HOST}
+    #dns_search:
+      #- ${FQDN}
+    #ports:
+      #- "80:80/tcp"                                                              # APACHE_HTTP 80/TCP
+      #- "${WORDPRESS_SITE_HTTP_PORT}:${WORDPRESS_SITE_HTTP_PORT}/tcp"       # APACHE_HTTP 80/TCP
+      #- "443:443/tcp"                                                              # APACHE_HTTPS 443/TCP
+      #- "${WORDPRESS_SITE_HTTPS_PORT}:${WORDPRESS_SITE_HTTPS_PORT}/tcp"     # APACHE_HTTPS 443/TCP
+    networks:
+      net_srv_private:
+        ipv4_address: ${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+      net_backend:
+        ipv4_address: ${WORDPRESS_DOCKER_NETWORK_BACKEND_IPV4}
+
+          
+# certbot(service) ############################################
+  certbot:
+    container_name: ${CLIENT_NAME}-certbot
+    hostname: ${CLIENT_NAME}-certbot
+    build:
+      context: ${IMAGE_ROOT_PATH}/certbot
+    restart: always
+    depends_on:
+      - wordpress
+    environment:
+      SITE_NAME: ${CERTBOT_SITE_NAME}
+      SITE_DOMAIN: ${CERTBOT_SITE_DOMAIN}
+    volumes:
+      - certbot_etc_supervisor:/etc/supervisor/
+      - certbot_srv_config:/srv/config
+      - certbot_var_log:/var/log
+      - certbot_var_spool_cron:/var/spool/cron
+      - certbot_usr_local_bin:/usr/local/bin
+      - certbot_root:/root
+      #- wordpress_var_www:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      net_srv_private:
+        ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
