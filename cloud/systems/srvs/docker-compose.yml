@@ -1,0 +1,110 @@
+#version: '3.6'
+
+#######################################################
+#####                    NETWORK                  #####
+#######################################################
+networks:
+
+################# NETWORK TO PRIVATE SERVERS - BRIDGE TO NETWORK net_srv_public on border commposer ambient
+  net_srv_private:
+    name: border_net_srv_private # this line is necessary to make a bridge
+    external: true # this line is necessary to make a bridge
+    enable_ipv6: false
+    driver: ${DOCKER_NETWORK_SRV_PRIVATE_DRIVER_MODE}
+    internal: false
+    driver_opts:
+      #parent: ${DOCKER_NETWORK_SRV_PRIVATE_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      #com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_SRV_PRIVATE_SUBNET_IPV4}
+          gateway: ${DOCKER_NETWORK_SRV_PRIVATE_GATEWAY_IPV4}
+
+
+################# NETWORK TO BACKEND COMMUNICATIONS
+  net_backend:
+    enable_ipv6: false
+    driver: ${DOCKER_NETWORK_BACKEND_DRIVER_MODE}
+    internal: true
+    driver_opts:
+      #parent: ${DOCKER_NETWORK_BACKEND_PARENT_INTERFACE}
+      com.docker.network.bridge.enable_icc: "true"
+        #com.docker.network.bridge.enable_ip_masquerade: "true"
+        #com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_NETWORK_BACKEND_SUBNET_IPV4}
+        # gateway: ${DOCKER_NETWORK_BACKEND_GATEWAY_IPV4}
+
+
+
+
+#######################################################
+#####                   VOLUMES                   #####
+#######################################################
+
+volumes:
+
+# certbot(volume) ############################################
+  certbot_etc_supervisor:
+  certbot_srv_config:
+  certbot_var_log:
+  certbot_var_spool_cron:
+  certbot_usr_local_bin:
+  certbot_root:
+  #wordpress_var_www:
+  #certbot_etc_letsencrypt:
+
+    
+#######################################################
+#####                   SERVICES                  #####
+#######################################################
+
+services:
+
+# portainer(service) ############################################
+  portainer:
+    container_name: portainer
+    hostname: portainer
+    build:
+      context: ${IMAGE_ROOT_PATH}/portainer
+    restart: always
+    volumes:
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/portainer/data/:/data/
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- /etc/letsencrypt:/etc/letsencrypt:ro
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt:ro
+    #ports:
+    #  - "9000:9000/tcp" # HTTP
+    #  - "9443:9443/tcp" # HTTPS
+    networks:
+      net_srv_private:
+        ipv4_address: ${PORTAINER_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+          
+# certbot(service) ############################################
+  certbot:
+    container_name: certbot
+    hostname: certbot
+    build:
+      context: ${IMAGE_ROOT_PATH}/certbot
+    restart: always
+    volumes:
+      - certbot_etc_supervisor:/etc/supervisor/
+      - certbot_srv_config:/srv/config
+      - certbot_var_log:/var/log
+      - certbot_var_spool_cron:/var/spool/cron
+      - certbot_usr_local_bin:/usr/local/bin
+      - certbot_root:/root
+      #- wordpress_var_www:/var/www/
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/workspace/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      net_srv_private:
+        ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
