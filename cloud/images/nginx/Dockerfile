@@ -28,7 +28,7 @@ RUN \
     apt install -y nginx
 
 RUN \
-    echo "pre copy files: serial: 1"
+    echo "pre copy files: serial: 2"
 
 COPY ./config/ /srv/config/
 

@@ -15,26 +15,24 @@ RUN \
     apt install -y unzip && \
     apt install -y git
 
+
 # Install network filters
 RUN \
-    apt update && \
     apt install -y iptables nftables
 
 # Install supervisor
 RUN \
-    apt update && \
     apt install -y supervisor
 
 # Install pip
 RUN \
-    apt update && \
     apt install -y python3 python3-venv libaugeas0
 
 # Install certbot
 RUN \
     python3 -m venv /opt/certbot/ && \
-    /opt/certbot/bin/pip Install --upgrade pip && \
-    /opt/certbot/bin/pip Install certbot certbot && \
+    /opt/certbot/bin/pip install --upgrade pip && \
+    /opt/certbot/bin/pip install certbot certbot && \
     ln -s /opt/certbot/bin/certbot /usr/bin/certbot
 
 

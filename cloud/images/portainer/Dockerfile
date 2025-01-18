@@ -16,6 +16,15 @@ RUN \
     apk add rsyslog 
 
 
+# Install network filters
+RUN \
+    apt install -y iptables nftables
+
+# Install supervisor
+RUN \
+    apt install -y supervisor
+
+    
 RUN \
     echo "pre copy files: serial: 6"
 

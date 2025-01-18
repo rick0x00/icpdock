@@ -55,8 +55,8 @@ function config_server() {
     config_crontab
     check_error $?
 
-    config_supervisor
-    check_error $?
+    #config_supervisor
+    #check_error $?
 
 }
 

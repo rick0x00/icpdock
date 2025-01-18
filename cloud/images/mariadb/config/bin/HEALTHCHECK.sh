@@ -130,7 +130,7 @@ exec_tests() {
 
         # check ports: mariadb
         #check_port "localhost" "3306"
-        check_port "127.0.0.1" "$3306"
+        check_port "127.0.0.1" "3306"
 
 
         # if sum of return test is ZERO, exit of loop

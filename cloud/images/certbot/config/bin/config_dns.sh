@@ -45,7 +45,7 @@ function config_resolvconf() {
 }
 
 
-if [ -n ${DNS_SERVER_IPS} ] || [ -n ${DNS_SERVER_DOMAIN} ]; then
+if [[ -n ${DNS_SERVER_IPS} ]] || [[ -n ${DNS_SERVER_DOMAIN} ]] ; then
     config_resolvconf
 else
     log_message "####### DNS not configured ######"

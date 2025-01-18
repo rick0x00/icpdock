@@ -3,3 +3,4 @@
 .vagrant
 *.tfstate*
 .terraform*
+*.env

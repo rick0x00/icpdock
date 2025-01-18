@@ -16,8 +16,17 @@ RUN \
 #    apt install -y git
 
 
+# Install network filters
 RUN \
-    echo "pre copy files: serial: 1"
+    apt install -y iptables nftables
+
+# Install supervisor
+RUN \
+    apt install -y supervisor
+
+    
+RUN \
+    echo "pre copy files: serial: 2"
 
 COPY ./config/ /srv/config/
 
