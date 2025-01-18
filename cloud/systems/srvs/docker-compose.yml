@@ -59,6 +59,23 @@ volumes:
   #wordpress_var_www:
   #certbot_etc_letsencrypt:
 
+# nextcloud(volume) ############################################
+  nextcloud_var_www_html:
+  nextcloud_var_www_html_custom_apps:
+  nextcloud_var_www_html_config:
+  nextcloud_var_www_html_themes:
+  #nextcloud_var_www_html_data:
+
+  
+# mariadb_nextcloud(volume) ############################################
+  mariadb_nextcloud_var_lib_mysql:
+  mariadb_nextcloud_root:
+  mariadb_nextcloud_etc_supervisor:
+  mariadb_nextcloud_usr_local_bin:
+  mariadb_nextcloud_etc_mysql:
+  mariadb_nextcloud_var_log:
+  mariadb_nextcloud_var_spool_cron:
+
     
 #######################################################
 #####                   SERVICES                  #####
@@ -108,3 +125,82 @@ services:
     networks:
       net_srv_private:
         ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+# nextcloud(service) ############################################
+  nextcloud:
+    container_name: nextcloud
+    hostname: nextcloud
+    #image: nextcloud:stable
+    build:
+      context: ${IMAGE_ROOT_PATH}/nextcloud
+    restart: always
+    depends_on:
+      - mariadb_nextcloud
+    environment:
+      - MYSQL_PASSWORD=${MARIADB_NEXTCLOUD_PASSWORD}
+      - MYSQL_DATABASE=${MARIADB_NEXTCLOUD_DATABASE}
+      - MYSQL_USER=${MARIADB_NEXTCLOUD_USER}
+      - MYSQL_HOST=mariadb_nextcloud
+      - NEXTCLOUD_ADMIN_USER=$NEXTCLOUD_ADMIN_USER
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR}
+      - NEXTCLOUD_TRUSTED_DOMAINS=$NEXTCLOUD_TRUSTED_DOMAINS
+    volumes:
+      #- nextcloud_var_www_html:/var/www/html/
+      #- nextcloud_var_www_html_custom_apps:/var/www/html/custom_apps/
+      #- nextcloud_var_www_html_config:/var/www/html/config/
+      #- nextcloud_var_www_html_themes:/var/www/html/themes/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/:/var/www/html/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/custom_apps/:/var/www/html/custom_apps/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/config/:/var/www/html/config/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/themes/:/var/www/html/themes/
+      #- nextcloud_var_www_html_data:${NEXTCLOUD_DATA_DIR}
+      - ${BIG_STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud${NEXTCLOUD_DATA_DIR}:${NEXTCLOUD_DATA_DIR}
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/backups/:/var/backups/
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/data/:/var/www/html/themes/
+      #- /etc/letsencrypt:/etc/letsencrypt:ro
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt:ro
+    #ports:
+    #  - "80:80/tcp" # HTTP
+    networks:
+      net_srv_private:
+        ipv4_address: ${NEXTCLOUD_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+      net_backend:
+        ipv4_address: ${NEXTCLOUD_DOCKER_NETWORK_BACKEND_IPV4}
+
+# mariadb_nextcloud(service) ############################################
+  mariadb_nextcloud:
+    container_name: mariadb_nextcloud
+    hostname: mariadb_nextcloud
+    build:
+      context: ${IMAGE_ROOT_PATH}/mariadb
+    restart: always
+    command:
+      - --max_allowed_packet=512MB
+      - --innodb_log_file_size=512M
+      - --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    environment:
+      #DNS_SERVER_IPS: ${MARIADB_NEXTCLOUD_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${MARIADB_NEXTCLOUD_DNS_SERVER_DOMAIN}
+      MYSQL_ROOT_PASSWORD: ${MARIADB_NEXTCLOUD_DATABASE_ROOT_PASS}
+      MARIADB_DATABASE: ${MARIADB_NEXTCLOUD_DATABASE}
+      MARIADB_USER: ${MARIADB_NEXTCLOUD_USER}
+      MARIADB_PASSWORD: ${MARIADB_NEXTCLOUD_PASSWORD}
+      #TZ: UTC
+    volumes:
+      #- mariadb_var_lib_mysql:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_nextcloud/var/lib/mysql/:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_nextcloud/var/backups/:/var/backups/
+      - mariadb_nextcloud_root:/root/
+      - mariadb_nextcloud_etc_supervisor:/etc/supervisor/
+      - mariadb_nextcloud_usr_local_bin:/usr/local/bin/
+      - mariadb_nextcloud_etc_mysql:/etc/mysql/
+      - mariadb_nextcloud_var_log:/var/log/
+      - mariadb_nextcloud_var_spool_cron:/var/spool/cron/
+      #- /etc/timezone:/etc/timezone:ro
+      #- /etc/localtime:/etc/localtime:ro
+    #ports:
+    #  - "3306:3306" # PORT = 3306 , MySQL database
+    networks:
+      net_backend:
+        ipv4_address: ${MARIADB_NEXTCLOUD_DOCKER_NETWORK_BACKEND_IPV4}

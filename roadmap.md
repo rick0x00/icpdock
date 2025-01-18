@@ -10,6 +10,8 @@
 - [ ] ZABBIX
 - [ ] Grafana
 - [ ] Prometheus
+- [x] Nextcloud
+- [x] Portainer
 - [ ] NetFlow
 - [ ] squid
 - [ ] DNS

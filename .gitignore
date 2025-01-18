@@ -4,3 +4,5 @@
 *.tfstate*
 .terraform*
 *.env
+**/*.env
+**/*/storage
