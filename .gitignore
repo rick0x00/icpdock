@@ -6,3 +6,5 @@
 *.env
 **/*.env
 **/*/storage
+cloud/systems/clients/*
+!cloud/systems/clients/xpto

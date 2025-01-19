@@ -124,10 +124,6 @@ exec_tests() {
         # check process mariadb
         check_process "mariadb"
 
-        # check process Supervisor
-        #check_process "supervisord"
-        check_process "python"
-
         # check ports: mariadb
         #check_port "localhost" "3306"
         check_port "127.0.0.1" "3306"
