@@ -37,7 +37,8 @@ RUN \
 
 # Install php deps
 RUN \
-    apt-get install -y libapache2-mod-php php-mysql
+    apt-get install -y libapache2-mod-php php-mysql &&
+    apt install php-curl php-dom php-imagick php-mbstring php-zip php-gd php-intl -y
 
 # Disable apache directory listing
 RUN \
