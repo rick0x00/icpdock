@@ -37,7 +37,7 @@ RUN \
 
 # Install php deps
 RUN \
-    apt-get install -y libapache2-mod-php php-mysql &&
+    apt-get install -y libapache2-mod-php php-mysql && \
     apt install php-curl php-dom php-imagick php-mbstring php-zip php-gd php-intl -y
 
 # Disable apache directory listing
@@ -77,6 +77,12 @@ RUN \
     unzip "${BUILD_PATH_WORDPRESS}/wordpress.zip" -d "${BUILD_PATH_WORDPRESS}/"
 
 RUN \
+    cd /usr/src/  && \
+    wget https://raw.githubusercontent.com/wp-cli/builds/refs/heads/gh-pages/deb/$(curl -s https://raw.githubusercontent.com/wp-cli/builds/refs/heads/gh-pages/deb/php-wpcli_latest_all.deb) -O php-wpcli_latest_all.deb  && \
+    apt install ./php-wpcli_latest_all.deb   && \
+    alias wp="wp --allow-root"
+
+RUN \
     echo "pre copy files: serial: 1"
 
 COPY ./config/ /srv/config/
@@ -109,9 +115,6 @@ ENV DATABASE_SCHEMA_NAME="wordpress_db"
 ENV DATABASE_SCHEMA_CHARSET="utf8mb4"
 ENV DATABASE_SCHEMA_COLLATE="utf8mb4_unicode_ci"
 
-ENV DATABASE_WORDPRESS_USER=wordpressuser
-ENV DATABASE_WORDPRESS_PASS=wordpresspass
-
 ## web server settings
 ENV SITE_HTTP_PORT="80"
 ENV SITE_HTTPS_PORT="443"
@@ -128,6 +131,14 @@ ENV WEB_APP_ROOT_PATH_CLIENT="${SITE_PATH_APP}"
 # ARG -> ENV (ARG to ENV vars transposition)
 ENV BUILD_PATH_WORDPRESS="${BUILD_PATH_WORDPRESS}"
 
+# Wordpress variables
+ENV WP_PLUGINS="classic-editor google-site-kit ultimate-addons-for-gutenberg"
+ENV WP_THEMES="hueman"
+ENV WP_SITE_URL="${SITE_NAME}.${SITE_DOMAIN}"
+ENV WP_SITE_TITLE="${SITE_NAME} site"
+ENV WP_SITE_ADMIN_USER="sysadmin"
+ENV WP_SITE_ADMIN_PASS="super_password"
+ENV WP_SITE_ADMIN_EMAIL="${WP_SITE_ADMIN_USER}@${SITE_DOMAIN}"
 
 ###################################################################
 

@@ -98,7 +98,9 @@ function config_database() {
         fi
     }
 
-
+    # DATABASE_CONFIG_MODE:
+    #   - MASTER : DATABASE SERVER CREATE USER, PASSWORD AND SCHEMA
+    #   - SLAVE : CLIENT CREATE USER, PASSWORD AND SCHEMA
     function check_database_configuration_mode() {
         if [[ "$DATABASE_CONFIG_MODE" == "SLAVE" ]] | [[ "$DATABASE_CONFIG_MODE" == "slave" ]] ; then
             log_message "# DATABASE configuration mode: SLAVE"
@@ -133,7 +135,7 @@ function config_wordpress() {
     local database_schema_name=${DATABASE_SCHEMA_NAME:-wordpress_db}
     local database_schema_charset=${DATABASE_SCHEMA_CHARSET:-utf8mb4}
     local database_schema_collate=${DATABASE_SCHEMA_COLLATE:-utf8mb4_unicode_ci}
-    
+
 
     check_vars WEB_APP_ROOT_PATH_CLIENT WEB_APP_ROOT_PATH BUILD_PATH_WORDPRESS
 
@@ -158,6 +160,40 @@ function config_wordpress() {
         chown www-data:www-data -R ${WEB_APP_ROOT_PATH_CLIENT}
     }
 
+    function config_wordpress_init_setup() {
+        log_message "# standard WordPress installation setup...."
+
+        check_vars WP_SITE_URL WP_SITE_TITLE WP_SITE_ADMIN_USER WP_SITE_ADMIN_PASS WP_SITE_ADMIN_EMAIL
+
+        local wp_site_url=${WP_SITE_URL}
+        local wp_site_title=${WP_SITE_TITLE}
+        local wp_site_admin_user=${WP_SITE_ADMIN_USER}
+        local wp_site_admin_pass=${WP_SITE_ADMIN_PASS}
+        local wp_site_admin_email=${WP_SITE_ADMIN_EMAIL}
+
+        cd ${WEB_APP_ROOT_PATH_CLIENT}
+        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" core install --url="${wp_site_url}" --title="${wp_site_title}" --admin_user="${wp_site_admin_user}" --admin_password="${wp_site_admin_pass}" --admin_email="${wp_site_admin_email}"
+        log_message "# ----------------------------------- "
+        log_message "# WP: URL = ${wp_site_url} "
+        log_message "# WP: TITLE = ${wp_site_title} "
+        log_message "# WP: Admin User = ${wp_site_admin_user} "
+        log_message "# WP: Admin Password = ${wp_site_admin_pass} "
+        log_message "# WP: Admin Eamil = ${wp_site_admin_email} "
+        log_message "# ----------------------------------- "
+    }
+
+    function config_wordpress_install_extras() {
+        log_message "# Installing Plugins and themes..."
+        check_vars WP_PLUGINS WP_THEMES
+
+        local wp_plugins=${WP_PLUGINS:-classic-editor}
+        local wp_themes=${WP_THEMES:-hueman}
+
+        cd ${WEB_APP_ROOT_PATH_CLIENT}
+        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" plugin install ${wp_plugins}
+        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" theme install ${wp_themes}
+    }
+
     log_message "# copy files to correct APP path <${WEB_APP_ROOT_PATH_CLIENT}>"
     if [ -d "${WEB_APP_ROOT_PATH_CLIENT}" ]; then
         # app detected
@@ -172,13 +208,15 @@ function config_wordpress() {
             mv -v ${WEB_APP_ROOT_PATH_CLIENT} ${WEB_APP_ROOT_PATH}_bkp-${date_now}
 
             log_message "# removing <${WEB_APP_ROOT_PATH_CLIENT}/> ...."
-            rm -rfv ${WEB_APP_ROOT_PATH_CLIENT}/
+            rm -rf ${WEB_APP_ROOT_PATH_CLIENT}/
 
             log_message "# forcing copy of files..."
-            cp -rv ${BUILD_PATH_WORDPRESS}/wordpress/* ${WEB_APP_ROOT_PATH_CLIENT}/
+            cp -r ${BUILD_PATH_WORDPRESS}/wordpress/* ${WEB_APP_ROOT_PATH_CLIENT}/
             check_error $?
 
             config_wordpress_files_database
+            config_wordpress_init_setup
+            config_wordpress_install_extras
 
         else
             log_message "skipping..."
@@ -190,10 +228,12 @@ function config_wordpress() {
 
         log_message "# copy of files..."
         mkdir -p "${WEB_APP_ROOT_PATH_CLIENT}"
-        cp -rv ${BUILD_PATH_WORDPRESS}/wordpress/* ${WEB_APP_ROOT_PATH_CLIENT}/
+        cp -r ${BUILD_PATH_WORDPRESS}/wordpress/* ${WEB_APP_ROOT_PATH_CLIENT}/
         check_error $?
 
         config_wordpress_files_database
+        config_wordpress_init_setup
+        config_wordpress_install_extras
 
     fi
 

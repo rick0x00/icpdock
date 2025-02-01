@@ -112,8 +112,8 @@ services:
       - mariadb_wordpress_etc_mysql:/etc/mysql/
       - mariadb_wordpress_var_log:/var/log/
       - mariadb_wordpress_var_spool_cron:/var/spool/cron/
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+        #- /etc/timezone:/etc/timezone:ro
+        #- /etc/localtime:/etc/localtime:ro
     #ports:
     #  - "3306:3306" # PORT = 3306 , MySQL database
     networks:
@@ -150,6 +150,13 @@ services:
       SITE_SSL_ENABLED: ${WORDPRESS_SITE_SSL_ENABLED}
       SITE_NAME: ${WORDPRESS_SITE_NAME}
       SITE_DOMAIN: ${WORDPRESS_SITE_DOMAIN}
+      WP_PLUGINS: ${WORDPRESS_WP_PLUGINS}
+      WP_THEMES: ${WORDPRESS_WP_THEMES}
+      WP_SITE_URL: ${WORDPRESS_WP_SITE_URL}
+      WP_SITE_TITLE: ${WORDPRESS_WP_SITE_TITLE}
+      WP_SITE_ADMIN_USER: ${WORDPRESS_WP_SITE_ADMIN_USER}
+      WP_SITE_ADMIN_PASS: ${WORDPRESS_WP_SITE_ADMIN_PASS}
+      WP_SITE_ADMIN_EMAIL: ${WORDPRESS_WP_SITE_ADMIN_EMAIL} 
     volumes:
       - wordpress_root:/root/ # pouco importante, somente retencao de historico
       - wordpress_usr_local_bin:/usr/local/bin/ 
