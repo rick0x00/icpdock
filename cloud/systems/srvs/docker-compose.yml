@@ -118,7 +118,7 @@ services:
       - certbot_usr_local_bin:/usr/local/bin
       - certbot_root:/root
       #- wordpress_var_www:/var/www/
-      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/workspace/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro

@@ -26,28 +26,38 @@ RUN \
 
 # Install pip
 RUN \
-    apt install -y python3 python3-venv libaugeas0
+    apt install -y python3 python3-pip python3-venv libaugeas0
 
 # Install certbot
 RUN \
     python3 -m venv /opt/certbot/ && \
     /opt/certbot/bin/pip install --upgrade pip && \
-    /opt/certbot/bin/pip install certbot certbot && \
+    /opt/certbot/bin/pip install certbot certbot-nginx certbot-apache certbot-dns-cloudflare && \
     ln -s /opt/certbot/bin/certbot /usr/bin/certbot
 
+RUN echo 5;
 
-COPY config/ /srv/config/
+COPY ./config/ /srv/config/
 
 RUN \
-    cp /srv/config/supervisor/*.conf /etc/supervisor/conf.d/ && \
-    cp /srv/config/bin/*.sh /usr/local/bin/ && \
+    cp -r /srv/config/bin/* /usr/local/bin/ && \
     chmod ug+x /usr/local/bin/*
 
 ###################################################################
 
-ENV SITE_NAME="xpto"
-ENV SITE_DOMAIN="domain.tld"
+## Generic Variables
+ENV CLIENT_NAME="xpto"
+ENV SYSTEM_NAME="certbot"
 
+## Certbot Variables
+
+ENV CERTBOT_CERTIFICATE_TYPE=""
+ENV CERTBOT_CERTIFICATE_PLUGIN=""
+ENV CERTBOT_CERTIFICATE_SITE_NAME=""
+ENV CERTBOT_CERTIFICATE_SITE_DOMAIN=""
+ENV CERTBOT_CERTIFICATE_EMAIL=""
+ENV CERTBOT_CERTIFICATE_WEBROOT=""
+ENV CERTBOT_CERTIFICATE_API_TOKEN=""  
 
 ## set reconfigurations trigger
 ENV FORCE_RECONFIG="false"

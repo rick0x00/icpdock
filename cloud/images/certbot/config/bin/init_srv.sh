@@ -7,8 +7,8 @@ source /usr/local/bin/lib/check_vars.lib
 source /usr/local/bin/lib/check_error.lib
 
 # setting of server
-#/usr/local/bin/config_srv.sh
-#check_error $?
+/usr/local/bin/config_srv.sh
+check_error $?
 
 log_message "------------------------------------------------------"
 log_message "########            STARTING SERVER           ########"

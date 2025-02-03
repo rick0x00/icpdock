@@ -128,16 +128,6 @@ exec_tests() {
         #check_process "supervisord"
         check_process "python"
 
-        # check ports: https
-        #check_port "localhost" "54200"
-        check_port "127.0.0.1" "${SITE_HTTP_PORT}"
-
-
-        # check HTTP service
-        #check_url "http://localhost:$HTTP_PORT"
-        check_url "http://127.0.0.1:${SITE_HTTP_PORT}"
-
-
         # if sum of return test is ZERO, exit of loop
         if [ "$SUM_STATUS" -eq 0 ]; then
             log_message " SUCESS ON ALL TESTS..."
