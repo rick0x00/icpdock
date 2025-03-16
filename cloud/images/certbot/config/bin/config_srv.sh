@@ -17,51 +17,55 @@ function config_certbot() {
 	log_message "## SETTING CERTBOT"
 	log_message " - Creating Certificate"
 
-	check_vars CERTBOT_CERTIFICATE_TYPE CERTBOT_CERTIFICATE_PLUGIN CERTBOT_CERTIFICATE_SITE_DOMAIN CERTBOT_CERTIFICATE_EMAIL
+    if [[ "${STARTUP_PROVISION_CERTIFICATE}" == "[Tt][Rr][Uu][Ee]" ]]; then
+        log_message " - Starting Certificate Provision"
 
-    local command_options
+        check_vars CERTBOT_CERTIFICATE_TYPE CERTBOT_CERTIFICATE_PLUGIN CERTBOT_CERTIFICATE_SITE_DOMAIN CERTBOT_CERTIFICATE_EMAIL
 
-    if [[ "${CERTBOT_CERTIFICATE_TYPE}" != "" ]]; then
-        command_options="${command_options} -t ${CERTBOT_CERTIFICATE_TYPE} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_PLUGIN}" != "" ]]; then
-        command_options="${command_options} -p ${CERTBOT_CERTIFICATE_PLUGIN} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_SITE_NAME}" != "" ]]; then
-        command_options="${command_options} -s ${CERTBOT_CERTIFICATE_SITE_NAME} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_SITE_DOMAIN}" != "" ]]; then
-        command_options="${command_options} -d ${CERTBOT_CERTIFICATE_SITE_DOMAIN} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_EMAIL}" != "" ]]; then
-        command_options="${command_options} -e ${CERTBOT_CERTIFICATE_EMAIL} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_WEBROOT}" != "" ]]; then
-        command_options="${command_options} -w ${CERTBOT_CERTIFICATE_WEBROOT} "
-    fi
-    if [[ "${CERTBOT_CERTIFICATE_API_TOKEN}" != "" ]]; then
-        command_options="${command_options} -a \"${CERTBOT_CERTIFICATE_API_TOKEN}\" "
-    fi
+        local command_options
 
-    bash make_cert.sh ${command_options}
-    check_error $?
+        if [[ "${CERTBOT_CERTIFICATE_TYPE}" != "" ]]; then
+            command_options="${command_options} -t ${CERTBOT_CERTIFICATE_TYPE} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_PLUGIN}" != "" ]]; then
+            command_options="${command_options} -p ${CERTBOT_CERTIFICATE_PLUGIN} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_SITE_NAME}" != "" ]]; then
+            command_options="${command_options} -s ${CERTBOT_CERTIFICATE_SITE_NAME} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_SITE_DOMAIN}" != "" ]]; then
+            command_options="${command_options} -d ${CERTBOT_CERTIFICATE_SITE_DOMAIN} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_EMAIL}" != "" ]]; then
+            command_options="${command_options} -e ${CERTBOT_CERTIFICATE_EMAIL} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_WEBROOT}" != "" ]]; then
+            command_options="${command_options} -w ${CERTBOT_CERTIFICATE_WEBROOT} "
+        fi
+        if [[ "${CERTBOT_CERTIFICATE_API_TOKEN}" != "" ]]; then
+            command_options="${command_options} -a \"${CERTBOT_CERTIFICATE_API_TOKEN}\" "
+        fi
 
-	log_message " - Setting renew on Crontab"
-    local log_file="/var/log/letsencrypt/renew.log"
-    mkdir -p $(dirname ${log_file})
-    touch ${log_file}
-    chmod ug+rw ${log_file}
-    (crontab -l ; echo "1 0 * * * certbot renew --dry-run --quiet && certbot renew >> ${log_file}")| crontab - 
+        bash make_cert.sh ${command_options}
+        check_error $?
+
+        log_message " - Setting renew on Crontab"
+        local log_file="/var/log/letsencrypt/renew.log"
+        mkdir -p $(dirname ${log_file})
+        touch ${log_file}
+        chmod ug+rw ${log_file}
+        (crontab -l ; echo "1 0 * * * certbot renew --dry-run --quiet && certbot renew >> ${log_file}")| crontab - 
+    else
+        log_message " - Skip Certificate Provision"
+    fi
 
 }
-
 
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/etc/nginx/' '/etc/letsencrypt/' >> /var/backups/register.log")| crontab - 
+    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/nginx/' '/etc/letsencrypt/'")| crontab - 
     mkdir -p /var/backups/
-    touch /var/backups/register.log
     (crontab -l ; echo "") | crontab -
 
 }

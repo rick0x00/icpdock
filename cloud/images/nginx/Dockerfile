@@ -39,6 +39,10 @@ RUN \
 
 ###################################################################
 
+## Generic Variables
+ENV CLIENT_NAME="xpto"
+ENV SYSTEM_NAME="nginx"
+
 ## set reconfigurations trigger
 ENV FORCE_RECONFIG="false"
 ## set healthcheck execution trigger
@@ -85,7 +89,7 @@ WORKDIR /etc/nginx/
 # retries: number of failures to consider that the container is not healtly
 
 
-HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/HEALTHCHECK.sh || exit 1
+HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process nginx --attempts 3 && /usr/local/bin/healthcheck.sh --host 127.0.0.1 --port 443 --attempts 3 || exit 1
 
 ###################################################################
 

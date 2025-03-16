@@ -7,7 +7,7 @@ source /usr/local/bin/lib/check_vars.lib
 source /usr/local/bin/lib/check_error.lib
 
 # setting of server
-/usr/local/bin/config_srv.sh
+#/usr/local/bin/config_srv.sh
 check_error $?
 
 log_message "------------------------------------------------------"

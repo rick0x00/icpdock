@@ -174,7 +174,7 @@ WORKDIR ${WEB_APP_ROOT_PATH}
 # start-interval: time between each test within "start-period"
 # retries: number of failures to consider that the container is not healtly
 
-HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/HEALTHCHECK.sh || exit 1
+HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process apache2 --attempts 3 && /usr/local/bin/healthcheck.sh --host 127.0.0.1 --port 443 --attempts 3 || exit 1
 
 ###################################################################
 

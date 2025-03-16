@@ -30,11 +30,50 @@ function config_nginx() {
 }
 
 
+function config_ssl_sef_signed(){
+	log_message "## SETTING SSL self-signed"
+
+    mkdir -p /etc/ssl/private/
+    mkdir -p /etc/ssl/certs/
+
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt -subj "/C=country/ST=State/L=Province/O=xpto/OU=SRE/CN=xpto.com"
+
+    openssl dhparam -out /etc/nginx/dhparam.pem 4096
+
+    echo '
+    ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+    ' > /etc/nginx/snippets/self-signed.conf
+
+    echo '
+    ssl_protocols TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam /etc/nginx/dhparam.pem; 
+    ssl_ciphers EECDH+AESGCM:EDH+AESGCM;
+    ssl_ecdh_curve secp384r1;
+    ssl_session_timeout  10m;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
+    # Disable strict transport security for now. You can uncomment the following
+    # line if you understand the implications.
+    #add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+    ' > /etc/nginx/snippets/ssl-params.conf
+
+}
+
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/etc/nginx/' '/etc/letsencrypt/' >> /var/backups/register.log")| crontab - 
+    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/nginx/'")| crontab - 
     (crontab -l ; echo "") | crontab -
+    mkdir -p /var/backups/
 }
 
 function config_supervisor(){
@@ -51,6 +90,9 @@ function config_server() {
     # call all functions to configure server
 
     config_nginx
+    check_error $?
+
+    config_ssl_sef_signed
     check_error $?
 
     config_crontab

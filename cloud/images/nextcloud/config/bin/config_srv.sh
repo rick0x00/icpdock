@@ -22,7 +22,7 @@ function config_nextcloud() {
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/var/www/html/' >> /var/backups/register.log")| crontab - 
+    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/var/www/html/'")| crontab - 
     (crontab -l ; echo "") | crontab -
 }
 

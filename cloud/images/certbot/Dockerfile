@@ -35,9 +35,11 @@ RUN \
     /opt/certbot/bin/pip install certbot certbot-nginx certbot-apache certbot-dns-cloudflare && \
     ln -s /opt/certbot/bin/certbot /usr/bin/certbot
 
-RUN echo 5;
+RUN echo 9;
 
 COPY ./config/ /srv/config/
+#COPY ./../scripts/healthcheck.sh /srv/config/bin/
+#COPY ./../scripts/backup.sh /srv/config/bin/
 
 RUN \
     cp -r /srv/config/bin/* /usr/local/bin/ && \
@@ -48,6 +50,8 @@ RUN \
 ## Generic Variables
 ENV CLIENT_NAME="xpto"
 ENV SYSTEM_NAME="certbot"
+
+ENV STARTUP_PROVISION_CERTIFICATE="false"
 
 ## Certbot Variables
 
@@ -90,7 +94,7 @@ WORKDIR /etc/letsencrypt/
 # start-interval: time between each test within "start-period"
 # retries: number of failures to consider that the container is not healtly
 
-HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/HEALTHCHECK.sh || exit 1
+HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process cron --attempts 3 || exit 1
 
 ###################################################################
 

@@ -296,8 +296,10 @@ function config_apache() {
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/etc/apache2/' '/var/www/' >> /var/backups/register.log")| crontab - 
+    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/apache2/' '/var/www/'")| crontab - 
     (crontab -l ; echo "") | crontab -
+    mkdir -p /var/backups/
+
 }
 
 function config_supervisor(){

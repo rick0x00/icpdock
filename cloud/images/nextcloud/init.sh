@@ -17,7 +17,10 @@ log_message "##########################################"
 function config_crontab() {
         log_message "# configurando crontab"
         ## configuracao do crontab
-        (echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/var/lib/mysql/' '/etc/mysql/' >> /var/backups/register.log 2>&1")| crontab - 
+        (echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/var/lib/mysql/' '/etc/mysql/' >> /var/backups/register.log 2>&1")| crontab -
+        (crontab -l ; echo "") | crontab -
+        mkdir -p /var/backups/
+
 }
 
 config_crontab

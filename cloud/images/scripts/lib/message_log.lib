@@ -1,0 +1,9 @@
+# register log functions
+log_message() {
+    local register_log="/var/log/srv.log"
+    local message="$*"
+    local content_log="[$(date '+%Y-%m-%d %H:%M:%S')] : $message"
+    echo "${content_log}" >> "${register_log}"
+    echo "${content_log}" 
+}
+
