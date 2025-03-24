@@ -27,6 +27,13 @@ RUN \
 RUN \
     apt install -y apache2 apache2-doc apache2-utils libapache2-mod-fcgid
 
+# create self signed certificates
+RUN \
+    mkdir -p /etc/ssl/private/  && \
+    mkdir -p /etc/ssl/certs/  && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt -subj "/C=BR/ST=State/L=Province/O=xpto/OU=SRE/CN=xpto.com"  && \
+    openssl dhparam -out /etc/apache2/dhparam.pem 4096
+
 # Disable apache directory listing
 RUN \
     cp /etc/apache2/apache2.conf /etc/apache2/apache2.conf.bkp_$(date +%s) && \
@@ -53,7 +60,7 @@ RUN \
     a2enmod headers
 
 RUN \
-    echo "pre copy files: serial: 1"
+    echo "pre copy files: serial: 2"
 
 COPY ./config/ /srv/config/
 

@@ -17,6 +17,9 @@ function config_apache() {
 
 	check_vars SITE_HTTP_PORT SITE_HTTPS_PORT SITE_PATH_APP SITE_SSL_ENABLED SITE_NAME SITE_DOMAIN
 
+    cp -r /srv/config/apache/*  /etc/apache2/
+
+
     local site_http_port="${SITE_HTTP_PORT:-80}"
     local site_https_port="${SITE_HTTPS_PORT:-443}"
 
@@ -34,7 +37,7 @@ function config_apache() {
     sed -i "/Listen 443/s/443/${site_https_port}/" /etc/apache2/ports.conf
 
     # copy sample file
-    cp "/srv/config/apache/site_sample.conf" "${site_config_file_uri}"
+    cp "/etc/apache2/sites-available/site_sample.conf" "${site_config_file_uri}"
 
     # setting site
     sed -i "s/SITE_HTTP_PORT/${site_http_port}/" "${site_config_file_uri}"
@@ -59,7 +62,7 @@ function config_apache() {
     fi
 
     # enabling site
-    a2ensite ${site_config_file_name}
+    # a2ensite ${site_config_file_name}
     # ln -s "${site_config_file_name}" /etc/apache2/sites-enabled/
 
 }
