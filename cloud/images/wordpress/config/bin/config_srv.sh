@@ -139,8 +139,6 @@ function config_wordpress() {
 
     check_vars WEB_APP_ROOT_PATH_CLIENT WEB_APP_ROOT_PATH BUILD_PATH_WORDPRESS
 
-    local site_path="${SITE_PATH:-'/var/www/wordpress'}"
-
 
     function config_wordpress_files_database() {
         cd ${WEB_APP_ROOT_PATH_CLIENT}
@@ -240,63 +238,10 @@ function config_wordpress() {
 }
 
 
-function config_apache() {
-	log_message "## SETTING APACHE"
-
-	check_vars SITE_HTTP_PORT SITE_HTTPS_PORT SITE_PATH_APP SITE_SSL_ENABLED SITE_NAME SITE_DOMAIN
-
-    local site_http_port="${SITE_HTTP_PORT:-80}"
-    local site_https_port="${SITE_HTTPS_PORT:-443}"
-
-    local site_path="${SITE_PATH_APP:-'/var/www/wordpress'}"
-    local site_ssl_enabled="${SITE_SSL_ENABLED:-false}"
-    local site_name="${SITE_NAME:-wordpress}"
-    local site_subdomain="${site_name:-debian}"
-    local site_root_domain="${SITE_DOMAIN:-local}"
-
-    local site_config_file_name="${site_name}.conf"
-    local site_config_file_uri="/etc/apache2/sites-available/${site_config_file_name}"
-
-    # setting apache server to listening on specified ports
-    sed -i "/Listen 80/s/80/${site_http_port}/" /etc/apache2/ports.conf
-    sed -i "/Listen 443/s/443/${site_https_port}/" /etc/apache2/ports.conf
-
-    # copy sample file
-    cp "/srv/config/apache/site_sample.conf" "${site_config_file_uri}"
-
-    # setting site
-    sed -i "s/SITE_HTTP_PORT/${site_http_port}/" "${site_config_file_uri}"
-    sed -i "s/SITE_HTTPS_PORT/${site_https_port}/" "${site_config_file_uri}"
-    sed -i "s|SITE_PATH|${site_path}|" "${site_config_file_uri}"
-    sed -i "s/SITE_NAME/${site_subdomain}/" "${site_config_file_uri}"
-    sed -i "s/SITE_DOMAIN/${site_root_domain}/" "${site_config_file_uri}"
-
-    # check if site use SSL enabled
-    if [ "${site_ssl_enabled}" == "true" ] || [ "${site_ssl_enabled}" == "yes" ]; then
-        # SSL Enabled on site
-        # Enable SSL page
-        # enabling http page redirect for https page
-        sed -i "/#Redirect/s/#Redirect/Redirect/" "${site_config_file_uri}"
-        # Configuring SSL options on page
-        sed -i "/SSL/s/#//" "${site_config_file_uri}"
-        sed -i "/Include/s/#//" "${site_config_file_uri}"
-    else
-        # SSL Disabled on site
-        # enabling http page work
-        sed -i "/DocumentRoot/s/#//" "${site_config_file_uri}"
-    fi
-
-    # enabling site
-    a2ensite ${site_config_file_name}
-    # ln -s "${site_config_file_name}" /etc/apache2/sites-enabled/
-
-}
-
-
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/apache2/' '/var/www/'")| crontab - 
+    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/var/www/'")| crontab - 
     (crontab -l ; echo "") | crontab -
     mkdir -p /var/backups/
 
@@ -319,9 +264,6 @@ function config_server() {
     check_error $?
 
     config_wordpress
-    check_error $?
-
-    config_apache
     check_error $?
 
     config_crontab

@@ -110,18 +110,18 @@ services:
     build:
       context: ${IMAGE_ROOT_PATH}/certbot
     restart: always
-    volumes:
-      - certbot_etc_supervisor:/etc/supervisor/
-      - certbot_srv_config:/srv/config
-      - certbot_var_log:/var/log
-      - certbot_var_spool_cron:/var/spool/cron
-      - certbot_usr_local_bin:/usr/local/bin
-      - certbot_root:/root
-      #- wordpress_var_www:/var/www/
-      - ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
-      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
+    # volumes:
+    #   - certbot_etc_supervisor:/etc/supervisor/
+    #   - certbot_srv_config:/srv/config
+    #   - certbot_var_log:/var/log
+    #   - certbot_var_spool_cron:/var/spool/cron
+    #   - certbot_usr_local_bin:/usr/local/bin
+    #   - certbot_root:/root
+    #   #- wordpress_var_www:/var/www/
+    #   - ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
+    #   - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt
+    #   - /etc/timezone:/etc/timezone:ro
+    #   - /etc/localtime:/etc/localtime:ro
     networks:
       net_srv_private:
         ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}

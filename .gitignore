@@ -8,3 +8,8 @@
 **/*/storage
 cloud/systems/clients/*
 !cloud/systems/clients/xpto
+
+cloud/images/*/config/bin/backup.sh
+cloud/images/*/config/bin/healthcheck.sh
+cloud/images/*/config/bin/config_dns.sh
+cloud/images/*/config/bin/lib

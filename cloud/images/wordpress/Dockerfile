@@ -1,10 +1,10 @@
-FROM debian:11
+FROM debian:12
 
 # Install tools
 RUN \
     apt update && \
     apt install -y net-tools iproute2 traceroute iputils-ping mtr && \
-    apt install -y tcpdump nmap netcat && \
+    apt install -y tcpdump nmap netcat-traditional && \
     apt install -y dnsutils && \
     apt install -y procps htop && \
     apt install -y nano vim && \
@@ -27,42 +27,16 @@ RUN \
 RUN \
     apt install -y mariadb-client
 
-# Install apache
-RUN \
-    apt install -y apache2 apache2-doc apache2-utils
-
 ## Install PHP
 RUN \
     apt install -y php
 
 # Install php deps
 RUN \
-    apt-get install -y libapache2-mod-php php-mysql && \
-    apt install php-curl php-dom php-imagick php-mbstring php-zip php-gd php-intl -y
+    apt-get install -y php-fpm php-mysql php-curl php-dom php-imagick php-mbstring php-zip php-gd php-intl php-xml -y
 
-# Disable apache directory listing
-RUN \
-    cp /etc/apache2/apache2.conf /etc/apache2/apache2.conf.bkp_$(date +%s) && \
-    sed -i "/Options/s/Indexes FollowSymLinks/FollowSymLinks/" /etc/apache2/apache2.conf
-
-# Disable apache server banner
-RUN \
-    cp /etc/apache2/conf-enabled/security.conf /etc/apache2/conf-enabled/security.conf.bkp_$(date +%s) && \
-    sed -i "/ServerTokens/s/OS/Prod/" /etc/apache2/conf-enabled/security.conf && \
-    sed -i "/ServerSignature/s/On/Off/" /etc/apache2/conf-enabled/security.conf
-
-##disable default apache website
-RUN \
-    a2dissite 000-default.conf && \
-    rm -rf /var/www/html
-
-##Enable the needed Apache modules
-RUN \
-    a2enmod rewrite && \
-    a2enmod proxy && \
-    a2enmod proxy_http && \
-    a2enmod ssl && \
-    a2enmod headers
+# Set php-fpm to listen over ethernet
+RUN sed -i "s/^listen = .*/listen = 0.0.0.0:9000/" $(find /etc/php/*/fpm/pool.d -name www.conf)
 
 # set vars of default executions build
 ARG BUILD_PATH_ROOT="/usr/src"
@@ -115,18 +89,9 @@ ENV DATABASE_SCHEMA_NAME="wordpress_db"
 ENV DATABASE_SCHEMA_CHARSET="utf8mb4"
 ENV DATABASE_SCHEMA_COLLATE="utf8mb4_unicode_ci"
 
-## web server settings
-ENV SITE_HTTP_PORT="80"
-ENV SITE_HTTPS_PORT="443"
-ENV SITE_PATH_ROOT="/var/www"
-ENV SITE_PATH_APP="${SITE_PATH_ROOT}/${SYSTEM_NAME}/${CLIENT_NAME}"
-ENV SITE_SSL_ENABLED="false"
-ENV SITE_NAME="${CLIENT_NAME}"
-ENV SITE_DOMAIN="domain.tld"
-
 # complementary vars
-ENV WEB_APP_ROOT_PATH="${SITE_PATH_ROOT}"
-ENV WEB_APP_ROOT_PATH_CLIENT="${SITE_PATH_APP}"
+ENV WEB_APP_ROOT_PATH="/var/www"
+ENV WEB_APP_ROOT_PATH_CLIENT="${WEB_APP_ROOT_PATH}/${SYSTEM_NAME}/${CLIENT_NAME}"
 
 # ARG -> ENV (ARG to ENV vars transposition)
 ENV BUILD_PATH_WORDPRESS="${BUILD_PATH_WORDPRESS}"
@@ -135,7 +100,7 @@ ENV BUILD_PATH_WORDPRESS="${BUILD_PATH_WORDPRESS}"
 ENV WP_PLUGINS="classic-editor google-site-kit ultimate-addons-for-gutenberg"
 ENV WP_THEMES="hueman"
 ENV WP_SITE_URL="${SITE_NAME}.${SITE_DOMAIN}"
-ENV WP_SITE_TITLE="${SITE_NAME} site"
+ENV WP_SITE_TITLE="${CLIENT_NAME} site"
 ENV WP_SITE_ADMIN_USER="sysadmin"
 ENV WP_SITE_ADMIN_PASS="super_password"
 ENV WP_SITE_ADMIN_EMAIL="${WP_SITE_ADMIN_USER}@${SITE_DOMAIN}"
@@ -145,7 +110,6 @@ ENV WP_SITE_ADMIN_EMAIL="${WP_SITE_ADMIN_USER}@${SITE_DOMAIN}"
 VOLUME /root/
 VOLUME /usr/local/bin/
 VOLUME /etc/supervisor/
-VOLUME /etc/apache2/
 VOLUME /var/www/
 VOLUME /var/spool/cron/
 VOLUME /var/log/
@@ -154,13 +118,8 @@ VOLUME /srv/config/
 
 ###################################################################
 
-# HTTP port
-#EXPOSE 80/tcp
-EXPOSE ${SITE_HTTP_PORT}/tcp
-
-# HTTPS port
-#EXPOSE 443/tcp
-EXPOSE ${SITE_HTTPS_PORT}/tcp
+# php-fpm port
+EXPOSE 9000/tcp
 
 ###################################################################
 
@@ -174,7 +133,7 @@ WORKDIR ${WEB_APP_ROOT_PATH}
 # start-interval: time between each test within "start-period"
 # retries: number of failures to consider that the container is not healtly
 
-HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process apache2 --attempts 3 && /usr/local/bin/healthcheck.sh --host 127.0.0.1 --port 443 --attempts 3 || exit 1
+HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process python --attempts 3 || exit 1
 
 ###################################################################
 
