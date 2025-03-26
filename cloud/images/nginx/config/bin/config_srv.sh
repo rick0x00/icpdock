@@ -20,12 +20,12 @@ function config_nginx() {
 
     cp -r /srv/config/nginx/*  /etc/nginx/
 
-    local config_file="/etc/nginx/sites-available/sample-proxy-hostname.domain.tld.conf"
+    #local config_file="/etc/nginx/sites-available/sample-proxy-hostname.domain.tld.conf"
 
     # enabling site
 
-    cd /etc/nginx/sites-enabled/
-    ln -s ${config_file}
+    #cd /etc/nginx/sites-enabled/
+    #ln -s ${config_file}
 
 }
 
