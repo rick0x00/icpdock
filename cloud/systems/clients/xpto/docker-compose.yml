@@ -31,25 +31,6 @@ networks:
 
 volumes:
 
-# mariadb_wordpress(volume) ############################################
-  mariadb_wordpress_var_lib_mysql:
-  mariadb_wordpress_root:
-  mariadb_wordpress_etc_supervisor:
-  mariadb_wordpress_usr_local_bin:
-  mariadb_wordpress_etc_mysql:
-  mariadb_wordpress_var_log:
-  mariadb_wordpress_var_spool_cron:
-
-# wordpress(volume) ############################################
-  wordpress_root:
-  wordpress_usr_local_bin:
-  wordpress_etc_supervisor:
-  wordpress_srv_config:
-  wordpress_var_log:
-  #wordpress_var_www:
-  wordpress_etc_apache2:
-  wordpress_var_spool_cron:
-
 # apache(volume) ############################################
   apache_root:
   apache_usr_local_bin:
@@ -79,6 +60,41 @@ volumes:
   #wordpress_var_www:
   #certbot_etc_letsencrypt:
 
+# wordpress(volume) ############################################
+  wordpress_root:
+  wordpress_usr_local_bin:
+  wordpress_etc_supervisor:
+  wordpress_srv_config:
+  wordpress_var_log:
+  #wordpress_var_www:
+  wordpress_etc_apache2:
+  wordpress_var_spool_cron:
+
+# mariadb_wordpress(volume) ############################################
+  mariadb_wordpress_var_lib_mysql:
+  mariadb_wordpress_root:
+  mariadb_wordpress_etc_supervisor:
+  mariadb_wordpress_usr_local_bin:
+  mariadb_wordpress_etc_mysql:
+  mariadb_wordpress_var_log:
+  mariadb_wordpress_var_spool_cron:
+
+# nextcloud(volume) ############################################
+  nextcloud_var_www_html:
+  nextcloud_var_www_html_custom_apps:
+  nextcloud_var_www_html_config:
+  nextcloud_var_www_html_themes:
+  #nextcloud_var_www_html_data:
+  
+# mariadb_nextcloud(volume) ############################################
+  mariadb_nextcloud_var_lib_mysql:
+  mariadb_nextcloud_root:
+  mariadb_nextcloud_etc_supervisor:
+  mariadb_nextcloud_usr_local_bin:
+  mariadb_nextcloud_etc_mysql:
+  mariadb_nextcloud_var_log:
+  mariadb_nextcloud_var_spool_cron:
+
     
 #######################################################
 #####                   SERVICES                  #####
@@ -86,41 +102,134 @@ volumes:
 
 services:
 
-# mariadb_wordpress(service) ############################################
-  mariadb_wordpress:
-    container_name: ${CLIENT_NAME}-mariadb
-    hostname: ${CLIENT_NAME}-mariadb
+# apache(service) ############################################
+  apache:
+    container_name: ${CLIENT_NAME}-apache
+    hostname: ${CLIENT_NAME}-apache
     build:
-      context: ${IMAGE_ROOT_PATH}/mariadb
+      context: ${IMAGE_ROOT_PATH}/apache
+    profiles:
+      - "apache"
+    links:
+      - wordpress
     restart: always
-    command:
-      - --max_allowed_packet=512MB
-      - --innodb_log_file_size=512M
     environment:
-      #DNS_SERVER_IPS: ${MARIADB_WORDPRESS_DNS_SERVER_IPS}
-      #DNS_SERVER_DOMAIN: ${MARIADB_WORDPRESS_DNS_SERVER_DOMAIN}
-      MYSQL_ROOT_PASSWORD: ${MARIADB_WORDPRESS_DATABASE_ROOT_PASS}
-      MARIADB_DATABASE: ${MARIADB_WORDPRESS_DATABASE}
-      MARIADB_USER: ${MARIADB_WORDPRESS_USER}
-      MARIADB_PASSWORD: ${MARIADB_WORDPRESS_PASSWORD}
-      #TZ: UTC
+      #DNS_SERVER_IPS: ${WORDPRESS_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${WORDPRESS_DNS_SERVER_DOMAIN}
+      FORCE_RECONFIG: false
+      HEALTHCHECK_ENABLED: true
+      SYSTEM_NAME: apache
+      CLIENT_NAME: ${CLIENT_NAME}
+      SITE_HTTP_PORT: ${APACHE_SITE_HTTP_PORT}
+      SITE_HTTPS_PORT: ${APACHE_SITE_HTTPS_PORT}  
+      SITE_SSL_ENABLED: ${APACHE_SITE_SSL_ENABLED}
+      SITE_NAME: ${APACHE_SITE_NAME}
+      SITE_DOMAIN: ${APACHE_SITE_DOMAIN}
     volumes:
-      #- mariadb_var_lib_mysql:/var/lib/mysql/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/lib/mysql/:/var/lib/mysql/ ### importante
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/backups/:/var/backups/
-      - mariadb_wordpress_root:/root/
-      - mariadb_wordpress_etc_supervisor:/etc/supervisor/
-      - mariadb_wordpress_usr_local_bin:/usr/local/bin/
-      - mariadb_wordpress_etc_mysql:/etc/mysql/
-      - mariadb_wordpress_var_log:/var/log/
-      - mariadb_wordpress_var_spool_cron:/var/spool/cron/
-        #- /etc/timezone:/etc/timezone:ro
-        #- /etc/localtime:/etc/localtime:ro
+      - apache_root:/root/ # pouco importante, somente retencao de historico
+      - apache_usr_local_bin:/usr/local/bin/ 
+      - apache_etc_supervisor:/etc/supervisor/ # pouco importante, somente garantia dos inicializadores adequados
+      - apache_srv_config:/srv/config/ # pouco importante, garantia de scrips de inicializacao corretos
+      - apache_var_log:/var/log/
+      #- apache_var_www:/var/www/
+      - apache_etc_apache2:/etc/apache2/
+      - apache_var_spool_cron:/var/spool/cron/
+      #- apache_etc_letsencrypt:/etc/letsencrypt
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-enabled/:/etc/apache2/sites-enabled/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-available/:/etc/apache2/sites-available/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/var/backups/:/var/backups/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserver/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/:ro
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    extra_hosts:
+      - "${APACHE_SITE_NAME}.domain.tld ${APACHE_SITE_NAME}:${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV4}"
+      #- "${APACHE_SITE_NAME}.domain.tld ${APACHE_SITE_NAME}:${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV6}"
+    #dns:
+      #- ${DOMAIN_DNS_SERVER_HOST}
+    #dns_search:
+      #- ${FQDN}
     #ports:
-    #  - "3306:3306" # PORT = 3306 , MySQL database
+      #- "80:80/tcp"                                                              # APACHE_HTTP 80/TCP
+      #- "${APACHE_SITE_HTTP_PORT}:${APACHE_SITE_HTTP_PORT}/tcp"       # APACHE_HTTP 80/TCP
+      #- "443:443/tcp"                                                              # APACHE_HTTPS 443/TCP
+      #- "${APACHE_SITE_HTTPS_PORT}:${APACHE_SITE_HTTPS_PORT}/tcp"     # APACHE_HTTPS 443/TCP
     networks:
       net_srv_private:
-        ipv4_address: ${MARIADB_WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+        ipv4_address: ${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+# NGINX(service) ############################################
+  nginx:
+    container_name: ${CLIENT_NAME}-nginx
+    hostname: ${CLIENT_NAME}-nginx
+    build:
+      context: ${IMAGE_ROOT_PATH}/nginx
+    profiles:
+      - "nginx"
+    restart: always
+    environment:
+      #DNS_SERVER_IPS: ${NGINX_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${NGINX_DNS_SERVER_DOMAIN}
+      SITE_HTTP_PORT: 80
+      SITE_HTTPS_PORT: 443
+    volumes:
+      - nginx_etc_nginx:/etc/nginx/
+      - nginx_etc_supervisor:/etc/supervisor/
+      - nginx_srv_config:/srv/config
+      - nginx_usr_local_bin:/usr/local/bin
+      - nginx_root:/root
+      - nginx_var_log:/var/log
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/backups/:/var/backups/
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
+      #- ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-available/:/etc/nginx/sites-available/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserver/var/www/:/var/www/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/:ro
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    # ports:
+    #   - "80:${NGINX_SITE_HTTP_PORT}/tcp" # web port
+    #   - "443:${NGINX_SITE_HTTPS_PORT}/tcp" # web port
+    networks:
+      net_srv_private:
+        ipv4_address: ${NGINX_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+
+# certbot(service) ############################################
+  certbot:
+    container_name: ${CLIENT_NAME}-certbot
+    hostname: ${CLIENT_NAME}-certbot
+    build:
+      context: ${IMAGE_ROOT_PATH}/certbot
+    restart: always
+    profiles:
+      - "certbot"
+    environment:
+      CERTBOT_CERTIFICATE_TYPE: ${CERTBOT_CERTIFICATE_TYPE}
+      CERTBOT_CERTIFICATE_PLUGIN: ${CERTBOT_CERTIFICATE_PLUGIN}
+      CERTBOT_CERTIFICATE_SITE_NAME: ${CERTBOT_CERTIFICATE_SITE_NAME}
+      CERTBOT_CERTIFICATE_SITE_DOMAIN: ${CERTBOT_CERTIFICATE_SITE_DOMAIN}
+      CERTBOT_CERTIFICATE_EMAIL: ${CERTBOT_CERTIFICATE_EMAIL}
+      CERTBOT_CERTIFICATE_WEBROOT: ${CERTBOT_CERTIFICATE_WEBROOT}
+      CERTBOT_CERTIFICATE_API_TOKEN: ${CERTBOT_CERTIFICATE_API_TOKEN} 
+    volumes:
+      - certbot_etc_supervisor:/etc/supervisor/
+      - certbot_srv_config:/srv/config
+      - certbot_var_log:/var/log
+      - certbot_var_spool_cron:/var/spool/cron
+      - certbot_usr_local_bin:/usr/local/bin
+      - certbot_root:/root
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserver/var/www/letsencrypt/:/var/www/letsencrypt/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      net_srv_private:
+        ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
 
 
 # wordpress(service) ############################################
@@ -132,6 +241,8 @@ services:
     depends_on:
       mariadb_wordpress:
         condition: service_healthy
+    profiles:
+      - "wordpress"
     links:
       - mariadb_wordpress
     restart: always
@@ -165,12 +276,12 @@ services:
       #- wordpress_var_www:/var/www/ 
       - wordpress_var_spool_cron:/var/spool/cron/
       #- certbot_etc_letsencrypt:/etc/letsencrypt
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress:/var/www/wordpress
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/backups/:/var/backups/
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    extra_hosts:
-      - "${CLIENT_NAME}.domain.tld ${CLIENT_NAME}:${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}"
+    #extra_hosts:
+      #- "${CLIENT_NAME}.domain.tld ${CLIENT_NAME}:${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}"
       #- "${CLIENT_NAME}.domain.tld ${CLIENT_NAME}:${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV6}"
     #dns:
       #- ${DOMAIN_DNS_SERVER_HOST}
@@ -183,129 +294,146 @@ services:
         ipv4_address: ${WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
 
 
-# apache(service) ############################################
-  apache:
-    container_name: ${CLIENT_NAME}-apache
-    hostname: ${CLIENT_NAME}-apache
+# mariadb_wordpress(service) ############################################
+  mariadb_wordpress:
+    container_name: ${CLIENT_NAME}-mariadb_wordpress
+    hostname: ${CLIENT_NAME}-mariadb_wordpress
     build:
-      context: ${IMAGE_ROOT_PATH}/apache
-    depends_on:
-      mariadb_wordpress:
-        condition: service_healthy
-    links:
-      - wordpress
+      context: ${IMAGE_ROOT_PATH}/mariadb
     restart: always
+    profiles:
+      - "wordpress"
+    command:
+      - --max_allowed_packet=512MB
+      - --innodb_log_file_size=512M
     environment:
-      #DNS_SERVER_IPS: ${WORDPRESS_DNS_SERVER_IPS}
-      #DNS_SERVER_DOMAIN: ${WORDPRESS_DNS_SERVER_DOMAIN}
-      FORCE_RECONFIG: false
-      HEALTHCHECK_ENABLED: true
-      SYSTEM_NAME: apache
-      CLIENT_NAME: ${CLIENT_NAME}
-      SITE_HTTP_PORT: ${APACHE_SITE_HTTP_PORT}
-      SITE_HTTPS_PORT: ${APACHE_SITE_HTTPS_PORT}  
-      SITE_SSL_ENABLED: ${APACHE_SITE_SSL_ENABLED}
-      SITE_NAME: ${APACHE_SITE_NAME}
-      SITE_DOMAIN: ${APACHE_SITE_DOMAIN}
+      #DNS_SERVER_IPS: ${MARIADB_WORDPRESS_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${MARIADB_WORDPRESS_DNS_SERVER_DOMAIN}
+      MYSQL_ROOT_PASSWORD: ${MARIADB_WORDPRESS_DATABASE_ROOT_PASS}
+      MARIADB_DATABASE: ${MARIADB_WORDPRESS_DATABASE}
+      MARIADB_USER: ${MARIADB_WORDPRESS_USER}
+      MARIADB_PASSWORD: ${MARIADB_WORDPRESS_PASSWORD}
+      #TZ: UTC
     volumes:
-      - apache_root:/root/ # pouco importante, somente retencao de historico
-      - apache_usr_local_bin:/usr/local/bin/ 
-      - apache_etc_supervisor:/etc/supervisor/ # pouco importante, somente garantia dos inicializadores adequados
-      - apache_srv_config:/srv/config/ # pouco importante, garantia de scrips de inicializacao corretos
-      - apache_var_log:/var/log/
-      #- apache_var_www:/var/www/
-      - apache_etc_apache2:/etc/apache2/
-      - apache_var_spool_cron:/var/spool/cron/
-      #- apache_etc_letsencrypt:/etc/letsencrypt
-      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserber/etc/apache2/sites-enabled/:/etc/apache2/sites-enabled/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserber/etc/apache2/sites-available/:/etc/apache2/sites-available/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/var/backups/:/var/backups/
+      #- mariadb_var_lib_mysql:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/lib/mysql/:/var/lib/mysql/ ### importante
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_wordpress/var/backups/:/var/backups/
+      - mariadb_wordpress_root:/root/
+      - mariadb_wordpress_etc_supervisor:/etc/supervisor/
+      - mariadb_wordpress_usr_local_bin:/usr/local/bin/
+      - mariadb_wordpress_etc_mysql:/etc/mysql/
+      - mariadb_wordpress_var_log:/var/log/
+      - mariadb_wordpress_var_spool_cron:/var/spool/cron/
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    extra_hosts:
-      - "${APACHE_SITE_NAME}.domain.tld ${APACHE_SITE_NAME}:${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV4}"
-      #- "${APACHE_SITE_NAME}.domain.tld ${APACHE_SITE_NAME}:${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV6}"
-    #dns:
-      #- ${DOMAIN_DNS_SERVER_HOST}
-    #dns_search:
-      #- ${FQDN}
     #ports:
-      #- "80:80/tcp"                                                              # APACHE_HTTP 80/TCP
-      #- "${APACHE_SITE_HTTP_PORT}:${APACHE_SITE_HTTP_PORT}/tcp"       # APACHE_HTTP 80/TCP
-      #- "443:443/tcp"                                                              # APACHE_HTTPS 443/TCP
-      #- "${APACHE_SITE_HTTPS_PORT}:${APACHE_SITE_HTTPS_PORT}/tcp"     # APACHE_HTTPS 443/TCP
+    #  - "3306:3306" # PORT = 3306 , MySQL database
     networks:
       net_srv_private:
-        ipv4_address: ${APACHE_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+        ipv4_address: ${MARIADB_WORDPRESS_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
 
-# NGINX(service) ############################################
-  nginx:
-    container_name: ${CLIENT_NAME}-nginx
-    hostname: ${CLIENT_NAME}-nginx
-    build:
-      context: ${IMAGE_ROOT_PATH}/nginx
-    restart: always
-    environment:
-      #DNS_SERVER_IPS: ${NGINX_DNS_SERVER_IPS}
-      #DNS_SERVER_DOMAIN: ${NGINX_DNS_SERVER_DOMAIN}
-      SITE_HTTP_PORT: 80
-      SITE_HTTPS_PORT: 443
-    volumes:
-      - nginx_etc_nginx:/etc/nginx/
-      - nginx_etc_supervisor:/etc/supervisor/
-      - nginx_srv_config:/srv/config
-      - nginx_usr_local_bin:/usr/local/bin
-      - nginx_root:/root
-      - nginx_var_log:/var/log
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/backups/:/var/backups/
-      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
-      #- ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-available/:/etc/nginx/sites-available/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
-      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    # ports:
-    #   - "80:${NGINX_SITE_HTTP_PORT}/tcp" # web port
-    #   - "443:${NGINX_SITE_HTTPS_PORT}/tcp" # web port
-    networks:
-      net_srv_private:
-        ipv4_address: ${NGINX_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
 
-# certbot(service) ############################################
-  certbot:
-    container_name: ${CLIENT_NAME}-certbot
-    hostname: ${CLIENT_NAME}-certbot
+# nextcloud(service) ############################################
+  nextcloud:
+    container_name: ${CLIENT_NAME}-nextcloud
+    hostname: ${CLIENT_NAME}-nextcloud
+    #image: nextcloud:stable
     build:
-      context: ${IMAGE_ROOT_PATH}/certbot
+      context: ${IMAGE_ROOT_PATH}/nextcloud
     restart: always
     depends_on:
-      - wordpress
+      mariadb_nextcloud:
+        condition: service_healthy
+    profiles:
+      - "nextcloud"
     environment:
-      CERTBOT_CERTIFICATE_TYPE: ${CERTBOT_CERTIFICATE_TYPE}
-      CERTBOT_CERTIFICATE_PLUGIN: ${CERTBOT_CERTIFICATE_PLUGIN}
-      CERTBOT_CERTIFICATE_SITE_NAME: ${CERTBOT_CERTIFICATE_SITE_NAME}
-      CERTBOT_CERTIFICATE_SITE_DOMAIN: ${CERTBOT_CERTIFICATE_SITE_DOMAIN}
-      CERTBOT_CERTIFICATE_EMAIL: ${CERTBOT_CERTIFICATE_EMAIL}
-      CERTBOT_CERTIFICATE_WEBROOT: ${CERTBOT_CERTIFICATE_WEBROOT}
-      CERTBOT_CERTIFICATE_API_TOKEN: ${CERTBOT_CERTIFICATE_API_TOKEN} 
+      - MYSQL_PASSWORD=${MARIADB_NEXTCLOUD_PASSWORD}
+      - MYSQL_DATABASE=${MARIADB_NEXTCLOUD_DATABASE}
+      - MYSQL_USER=${MARIADB_NEXTCLOUD_USER}
+      - MYSQL_HOST=mariadb_nextcloud
+      - NEXTCLOUD_ADMIN_USER=$NEXTCLOUD_ADMIN_USER
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR}
     volumes:
-      - certbot_etc_supervisor:/etc/supervisor/
-      - certbot_srv_config:/srv/config
-      - certbot_var_log:/var/log
-      - certbot_var_spool_cron:/var/spool/cron
-      - certbot_usr_local_bin:/usr/local/bin
-      - certbot_root:/root
-      #- wordpress_var_www:/var/www/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/:/var/www/
-      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt/
+      #- nextcloud_var_www_html:/var/www/html/
+      #- nextcloud_var_www_html_custom_apps:/var/www/html/custom_apps/
+      #- nextcloud_var_www_html_config:/var/www/html/config/
+      #- nextcloud_var_www_html_themes:/var/www/html/themes/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/:/var/www/html/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/custom_apps/:/var/www/html/custom_apps/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/config/:/var/www/html/config/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/www/html/themes/:/var/www/html/themes/
+      #- nextcloud_var_www_html_data:${NEXTCLOUD_DATA_DIR}
+      - ${BIG_STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud${NEXTCLOUD_DATA_DIR}:${NEXTCLOUD_DATA_DIR}
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud${NEXTCLOUD_DATA_DIR}:${NEXTCLOUD_DATA_DIR}
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/var/backups/:/var/backups/
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nextcloud/data/:/var/www/html/themes/
+      #- /etc/letsencrypt:/etc/letsencrypt:ro
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+    #ports:
+    #  - "80:80/tcp" # HTTP
     networks:
       net_srv_private:
-        ipv4_address: ${CERTBOT_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+        ipv4_address: ${NEXTCLOUD_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+# mariadb_nextcloud(service) ############################################
+  mariadb_nextcloud:
+    container_name: ${CLIENT_NAME}-mariadb_nextcloud
+    hostname: ${CLIENT_NAME}-mariadb_nextcloud
+    build:
+      context: ${IMAGE_ROOT_PATH}/mariadb
+    restart: always
+    profiles:
+      - "nextcloud"
+    command:
+      - --max_allowed_packet=512MB
+      - --innodb_log_file_size=512M
+      - --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    environment:
+      #DNS_SERVER_IPS: ${MARIADB_NEXTCLOUD_DNS_SERVER_IPS}
+      #DNS_SERVER_DOMAIN: ${MARIADB_NEXTCLOUD_DNS_SERVER_DOMAIN}
+      MYSQL_ROOT_PASSWORD: ${MARIADB_NEXTCLOUD_DATABASE_ROOT_PASS}
+      MARIADB_DATABASE: ${MARIADB_NEXTCLOUD_DATABASE}
+      MARIADB_USER: ${MARIADB_NEXTCLOUD_USER}
+      MARIADB_PASSWORD: ${MARIADB_NEXTCLOUD_PASSWORD}
+      #TZ: UTC
+    volumes:
+      #- mariadb_var_lib_mysql:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_nextcloud/var/lib/mysql/:/var/lib/mysql/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/mariadb_nextcloud/var/backups/:/var/backups/
+      - mariadb_nextcloud_root:/root/
+      - mariadb_nextcloud_etc_supervisor:/etc/supervisor/
+      - mariadb_nextcloud_usr_local_bin:/usr/local/bin/
+      - mariadb_nextcloud_etc_mysql:/etc/mysql/
+      - mariadb_nextcloud_var_log:/var/log/
+      - mariadb_nextcloud_var_spool_cron:/var/spool/cron/
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    #ports:
+    #  - "3306:3306" # PORT = 3306 , MySQL database
+    networks:
+      net_srv_private:
+        ipv4_address: ${MARIADB_NEXTCLOUD_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
+
+# portainer(service) ############################################
+  portainer:
+    container_name: portainer
+    hostname: portainer
+    build:
+      context: ${IMAGE_ROOT_PATH}/portainer
+    profiles:
+      - "portainer"
+    restart: always
+    volumes:
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/portainer/data/:/data/
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt:ro
+    #ports:
+    #  - "9000:9000/tcp" # HTTP
+    #  - "9443:9443/tcp" # HTTPS
+    networks:
+      net_srv_private:
+        ipv4_address: ${PORTAINER_DOCKER_NETWORK_SRV_PRIVATE_IPV4}
 
