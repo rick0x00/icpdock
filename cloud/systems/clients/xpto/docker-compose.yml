@@ -182,7 +182,6 @@ services:
       - nginx_var_log:/var/log
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/backups/:/var/backups/
       #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
-      #- ${STORAGE_ROOT_PATH}/generic/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-available/:/etc/nginx/sites-available/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
@@ -429,7 +428,7 @@ services:
     volumes:
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/portainer/data/:/data/
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${STORAGE_ROOT_PATH}/generic/certbot/etc/letsencrypt/:/etc/letsencrypt:ro
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
     #ports:
     #  - "9000:9000/tcp" # HTTP
     #  - "9443:9443/tcp" # HTTPS
