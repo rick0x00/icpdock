@@ -64,7 +64,7 @@ function config_certbot() {
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/nginx/' '/etc/letsencrypt/'")| crontab - 
+    (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/etc/letsencrypt/'")| crontab - 
     mkdir -p /var/backups/
     (crontab -l ; echo "") | crontab -
 

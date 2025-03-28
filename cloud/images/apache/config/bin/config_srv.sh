@@ -71,7 +71,7 @@ function config_apache() {
 function config_crontab() {
     log_message "## SETTING CRONTAB"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * * bash /usr/local/bin/backup.sh -d '/var/backups/' -r 7 '/etc/apache2/'")| crontab - 
+    (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/etc/apache2/'")| crontab - 
     (crontab -l ; echo "") | crontab -
     mkdir -p /var/backups/
 
