@@ -237,14 +237,24 @@ function config_wordpress() {
 
 }
 
+function config_backup_on_git() {
+    log_message "## SETTING Backup On GIT"
+    check_vars WEB_APP_ROOT_PATH_CLIENT 
+    cd ${WEB_APP_ROOT_PATH_CLIENT}
 
-function config_crontab() {
-    log_message "## SETTING CRONTAB"
+    git init .
+    git config --global --add safe.directory ${WEB_APP_ROOT_PATH_CLIENT}
+    git add .
+    git commit -m "backup on git = first commit"
+
+    (crontab -l ; echo "0 0 * * * cd ${WEB_APP_ROOT_PATH_CLIENT} && git add . && git commit -m \"backup on git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+}
+
+function config_backup() {
+    log_message "## SETTING Backup"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/var/www/'")| crontab - 
-    (crontab -l ; echo "") | crontab -
+    (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '${WEB_APP_ROOT_PATH_CLIENT}'")| crontab - 
     mkdir -p /var/backups/
-
 }
 
 function config_supervisor(){
@@ -266,7 +276,10 @@ function config_server() {
     config_wordpress
     check_error $?
 
-    config_crontab
+    config_backup_on_git
+    check_error $?
+
+    config_backup
     check_error $?
 
     config_supervisor
