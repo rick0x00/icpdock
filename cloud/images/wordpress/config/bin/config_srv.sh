@@ -237,7 +237,7 @@ function config_wordpress() {
 
 }
 
-function config_backup_on_git() {
+function config_backup_with_git() {
     log_message "## SETTING Backup On GIT"
     check_vars WEB_APP_ROOT_PATH_CLIENT 
     cd ${WEB_APP_ROOT_PATH_CLIENT}
@@ -245,9 +245,9 @@ function config_backup_on_git() {
     git init .
     git config --global --add safe.directory ${WEB_APP_ROOT_PATH_CLIENT}
     git add .
-    git commit -m "backup on git = first commit"
+    git commit -m "backup with git = first commit"
 
-    (crontab -l ; echo "0 0 * * * cd ${WEB_APP_ROOT_PATH_CLIENT} && git add . && git commit -m \"backup on git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+    (crontab -l ; echo "0 0 * * * cd ${WEB_APP_ROOT_PATH_CLIENT} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
 }
 
 function config_backup() {
@@ -276,7 +276,7 @@ function config_server() {
     config_wordpress
     check_error $?
 
-    config_backup_on_git
+    config_backup_with_git
     check_error $?
 
     config_backup
