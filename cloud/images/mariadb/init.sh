@@ -1,38 +1,29 @@
-#!/bin/bash
-args="$*"
+#!/usr/bin/env bash
+ARGS="$*"
 
-log_message() {
-    REGISTER_LOG="/var/log/config.log"
-    local message="$*"
-    local content_log=""
-    content_log="[$(date '+%Y-%m-%d %H:%M:%S')] - $message"
-    echo "${content_log}" >> "${REGISTER_LOG}"
-    echo "${content_log}" 
-}
+# load libraries
+source /usr/local/bin/lib/message_log.lib
+source /usr/local/bin/lib/check_vars.lib
+source /usr/local/bin/lib/check_error.lib
 
-log_message "##########################################"
-log_message "##           INICIANDO DOCKER           ##"
-log_message "##########################################"
+# setting of server
+/usr/local/bin/config_srv.sh
+check_error $?
 
-function config_crontab() {
-        log_message "# configurando crontab"
-        ## configuracao do crontab
-        (echo "0 1 * * * bash /usr/local/bin/create_backup.sh '/var/lib/mysql/' '/etc/mysql/' >> /var/backups/register.log 2>&1")| crontab - 
-}
+log_message "------------------------------------------------------"
+log_message "########            STARTING SERVER           ########"
+log_message "------------------------------------------------------"
 
-config_crontab
+# setting DNS
+/usr/local/bin/config_dns.sh
+check_error $?
 
+log_message "#### STARTING SERVICES ####"
 
-log_message "###### CONFIGURANDO resolv.conf ######"
-/usr/local/bin/config_resolv_conf.sh
-# verificando  se a configuracao funcionou corretamente
-if [ $? -eq 0 ]; then
-	log_message "configuracao OK"
-else
-	log_message "ERROR: problema de configuracao"
-	exit 1
-fi
-
+log_message "## starting supervisor..."
+/usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf -n & 
 
 #/usr/sbin/cron -f
+#sleep infinity
+log_message "## starting default services..."
 /usr/local/bin/docker-entrypoint.sh ${args}

@@ -61,14 +61,26 @@ function config_certbot() {
 
 }
 
-function config_crontab() {
-    log_message "## SETTING CRONTAB"
+function config_backup_with_git() {
+    log_message "## SETTING Backup On GIT"
+
+    local git_path="/etc/letsencrypt/"
+
+    git init .
+    git config --global --add safe.directory ${git_path}
+    git add .
+    git commit -m "backup with git = first commit"
+
+    (crontab -l ; echo "0 0 * * * cd ${git_path} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+}
+
+function config_backup() {
+    log_message "## SETTING Backup"
     ## setting crontab
     (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/etc/letsencrypt/'")| crontab - 
     mkdir -p /var/backups/
-    (crontab -l ; echo "") | crontab -
-
 }
+
 
 function config_supervisor(){
     log_message "## SETTING SUPERVISOR"
@@ -86,7 +98,10 @@ function config_server() {
     config_certbot
     check_error $?
 
-    config_crontab
+    config_backup_with_git
+    check_error $?
+
+    config_backup
     check_error $?
 
     config_supervisor

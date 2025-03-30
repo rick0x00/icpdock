@@ -20,9 +20,15 @@ check_error $?
 
 log_message "#### STARTING SERVICES ####"
 
-log_message "## starting portainer..."
-/portainer
+log_message "## starting supervisor..."
+/usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf -n & 
 
 #/usr/sbin/cron -f
 #sleep infinity
-#/usr/local/bin/docker-entrypoint.sh ${ARGS}
+
+log_message "## starting portainer..."
+/portainer
+
+
+# log_message "## starting default services..."
+# /usr/local/bin/docker-entrypoint.sh ${args}

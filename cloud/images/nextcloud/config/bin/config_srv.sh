@@ -18,12 +18,24 @@ function config_nextcloud() {
 
 }
 
+function config_backup_with_git() {
+    log_message "## SETTING Backup On GIT"
 
-function config_crontab() {
-    log_message "## SETTING CRONTAB"
+    local git_path="/var/www/html/config/"
+
+    git init .
+    git config --global --add safe.directory ${git_path}
+    git add .
+    git commit -m "backup with git = first commit"
+
+    (crontab -l ; echo "0 0 * * * cd ${git_path} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+}
+
+function config_backup() {
+    log_message "## SETTING Backup"
     ## setting crontab
     (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/var/www/html/config/'")| crontab - 
-    (crontab -l ; echo "") | crontab -
+    mkdir -p /var/backups/
 }
 
 function config_supervisor(){
@@ -42,11 +54,14 @@ function config_server() {
     #config_nextcloud
     #check_error $?
 
-    config_crontab
+    config_backup_with_git
     check_error $?
 
-    #config_supervisor
-    #check_error $?
+    config_backup
+    check_error $?
+
+    config_supervisor
+    check_error $?
 
 }
 

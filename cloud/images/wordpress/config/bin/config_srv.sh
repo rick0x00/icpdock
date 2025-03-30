@@ -248,6 +248,9 @@ function config_backup_with_git() {
     git commit -m "backup with git = first commit"
 
     (crontab -l ; echo "0 0 * * * cd ${WEB_APP_ROOT_PATH_CLIENT} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+
+    # restrict access to path
+    chmod o-rwx .git/
 }
 
 function config_backup() {

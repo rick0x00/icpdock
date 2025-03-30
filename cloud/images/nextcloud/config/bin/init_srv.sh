@@ -20,9 +20,10 @@ check_error $?
 
 log_message "#### STARTING SERVICES ####"
 
-#log_message "## starting supervisor..."
-#/usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf -n &
+log_message "## starting supervisor..."
+/usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf -n &
 
 #/usr/sbin/cron -f
 #sleep infinity
+log_message "## starting  Default services..."
 /entrypoint.sh ${ARGS}

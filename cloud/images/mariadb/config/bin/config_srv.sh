@@ -23,20 +23,41 @@ function config_mariadb() {
 
     cp /srv/config/mariadb/my.cnf  /etc/mysql/conf.d/my.cnf
 
-    chown -R mysql:mysql /var/lib/mysql/ 
+    #chown -R mysql:mysql /var/lib/mysql/ 
+    chown  mysql:mysql /etc/mysql/conf.d/my.cnf
     chmod 0444 /etc/mysql/conf.d/my.cnf
 
 }
 
+function config_backup_with_git() {
+    log_message "## SETTING Backup On GIT"
 
-function config_crontab() {
-    log_message "## SETTING CRONTAB"
+    local git_path="/var/lib/mysql/"
+
+    git init .
+    git config --global --add safe.directory ${git_path}
+    git add .
+    git commit -m "backup with git = first commit"
+
+    (crontab -l ; echo "0 0 * * * cd ${git_path} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+
+    local git_path="/etc/mysql/"
+
+    git init .
+    git config --global --add safe.directory ${git_path}
+    git add .
+    git commit -m "backup with git = first commit"
+
+    (crontab -l ; echo "0 0 * * * cd ${git_path} && git add . && git commit -m \"backup with git = host: \$(hostname) - date: \$(date)\"")| crontab - 
+}
+
+function config_backup() {
+    log_message "## SETTING Backup"
     ## setting crontab
     (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '/var/lib/mysql/' '/etc/mysql/'")| crontab - 
-    (crontab -l ; echo "") | crontab -
     mkdir -p /var/backups/
-
 }
+
 
 function config_supervisor(){
     log_message "## SETTING SUPERVISOR"
@@ -51,14 +72,17 @@ function config_supervisor(){
 function config_server() {
     # call all functions to configure server
 
-    config_mariadb
-    check_error $?
-
-    config_crontab
-    check_error $?
-
-    #config_supervisor
+    #config_mariadb
     #check_error $?
+
+    config_backup_with_git
+    check_error $?
+
+    config_backup
+    check_error $?
+
+    config_supervisor
+    check_error $?
 
 }
 
