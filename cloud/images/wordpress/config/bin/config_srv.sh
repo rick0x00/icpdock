@@ -170,7 +170,8 @@ function config_wordpress() {
         local wp_site_admin_email=${WP_SITE_ADMIN_EMAIL}
 
         cd ${WEB_APP_ROOT_PATH_CLIENT}
-        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" core install --url="${wp_site_url}" --title="${wp_site_title}" --admin_user="${wp_site_admin_user}" --admin_password="${wp_site_admin_pass}" --admin_email="${wp_site_admin_email}"
+        su - www-data -s /bin/bash -c "wp --path=\"${WEB_APP_ROOT_PATH_CLIENT}\" core install --url=\"${wp_site_url}\" --title=\"${wp_site_title}\" --admin_user=\"${wp_site_admin_user}\" --admin_password=\"${wp_site_admin_pass}\" --admin_email=\"${wp_site_admin_email}\""
+        #wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" core install --url="${wp_site_url}" --title="${wp_site_title}" --admin_user="${wp_site_admin_user}" --admin_password="${wp_site_admin_pass}" --admin_email="${wp_site_admin_email}"
         log_message "# ----------------------------------- "
         log_message "# WP: URL = ${wp_site_url} "
         log_message "# WP: TITLE = ${wp_site_title} "
@@ -188,8 +189,22 @@ function config_wordpress() {
         local wp_themes=${WP_THEMES:-hueman}
 
         cd ${WEB_APP_ROOT_PATH_CLIENT}
+        su - www-data -s /bin/bash -c "wp --path=\"${WEB_APP_ROOT_PATH_CLIENT}\" plugin install ${wp_plugins}"
+        su - www-data -s /bin/bash -c "wp --path=\"${WEB_APP_ROOT_PATH_CLIENT}\" theme install ${wp_themes}"
         wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" plugin install ${wp_plugins}
         wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" theme install ${wp_themes}
+    }
+
+    function config_wordpress_updater() {
+        log_message "# updating wordpress"
+        /usr/local/bin/wordpress_update.sh
+        (crontab -l ; echo "0 2 * * 6 bash /usr/local/bin/wordpress_update.sh")| crontab - 
+    }
+
+    function config_wordpress_files_permissions() {
+        log_message "# Setting wordpress permissions"
+        #/usr/local/bin/config_wordpress_permissions.sh 
+        (crontab -l ; echo "@reboot bash /usr/local/bin/config_wordpress_permissions.sh")| crontab - 
     }
 
     log_message "# copy files to correct APP path <${WEB_APP_ROOT_PATH_CLIENT}>"
@@ -215,6 +230,8 @@ function config_wordpress() {
             config_wordpress_files_database
             config_wordpress_init_setup
             config_wordpress_install_extras
+            config_wordpress_updater
+            config_wordpress_files_permissions
 
         else
             log_message "skipping..."
@@ -232,7 +249,8 @@ function config_wordpress() {
         config_wordpress_files_database
         config_wordpress_init_setup
         config_wordpress_install_extras
-
+        config_wordpress_updater
+        config_wordpress_files_permissions
     fi
 
 }

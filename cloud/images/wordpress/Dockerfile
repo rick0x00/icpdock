@@ -57,7 +57,7 @@ RUN \
     alias wp="wp --allow-root"
 
 RUN \
-    echo "pre copy files: serial: 2"
+    echo "pre copy files: serial: 7"
 
 COPY ./config/ /srv/config/
 
@@ -104,6 +104,7 @@ ENV WP_SITE_TITLE="${CLIENT_NAME} site"
 ENV WP_SITE_ADMIN_USER="sysadmin"
 ENV WP_SITE_ADMIN_PASS="super_password"
 ENV WP_SITE_ADMIN_EMAIL="${WP_SITE_ADMIN_USER}@${SITE_DOMAIN}"
+ENV WP_SECURITY_FILES_MODE="permissive"
 
 ###################################################################
 

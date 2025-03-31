@@ -265,7 +265,8 @@ services:
       WP_SITE_TITLE: ${WORDPRESS_WP_SITE_TITLE}
       WP_SITE_ADMIN_USER: ${WORDPRESS_WP_SITE_ADMIN_USER}
       WP_SITE_ADMIN_PASS: ${WORDPRESS_WP_SITE_ADMIN_PASS}
-      WP_SITE_ADMIN_EMAIL: ${WORDPRESS_WP_SITE_ADMIN_EMAIL} 
+      WP_SITE_ADMIN_EMAIL: ${WORDPRESS_WP_SITE_ADMIN_EMAIL}
+      WP_SECURITY_FILES_MODE: ${WORDPRESS_WP_SECURITY_FILES_MODE}
     volumes:
       - wordpress_root:/root/ # pouco importante, somente retencao de historico
       - wordpress_usr_local_bin:/usr/local/bin/ 
