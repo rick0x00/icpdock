@@ -11,9 +11,9 @@ RUN \
     apt install -y mc && \
 #    apt install -y wget curl && \
     apt install -y cron && \
-    apt install -y rsyslog
+    apt install -y rsyslog && \
 #    apt install -y unzip && \
-#    apt install -y git
+    apt install -y git
 
 
 # Install network filters
@@ -26,7 +26,7 @@ RUN \
 
     
 RUN \
-    echo "pre copy files: serial: 3"
+    echo "pre copy files: serial: 4"
 
 COPY ./config/ /srv/config/
 

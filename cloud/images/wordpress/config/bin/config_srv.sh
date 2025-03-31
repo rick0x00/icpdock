@@ -258,8 +258,8 @@ function config_wordpress() {
 function config_backup_with_git() {
     log_message "## SETTING Backup On GIT"
     check_vars WEB_APP_ROOT_PATH_CLIENT 
-    cd ${WEB_APP_ROOT_PATH_CLIENT}
 
+    cd ${WEB_APP_ROOT_PATH_CLIENT}
     git init .
     git config --global --add safe.directory ${WEB_APP_ROOT_PATH_CLIENT}
     git add .

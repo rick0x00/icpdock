@@ -66,6 +66,7 @@ function config_backup_with_git() {
 
     local git_path="/etc/letsencrypt/"
 
+    cd $git_path
     git init .
     git config --global --add safe.directory ${git_path}
     git add .

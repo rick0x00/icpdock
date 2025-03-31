@@ -57,7 +57,7 @@ RUN \
     alias wp="wp --allow-root"
 
 RUN \
-    echo "pre copy files: serial: 8"
+    echo "pre copy files: serial: 9"
 
 COPY ./config/ /srv/config/
 

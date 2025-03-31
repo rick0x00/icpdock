@@ -30,7 +30,7 @@ RUN \
 
 
 RUN \
-    echo "pre copy files: serial: 3"
+    echo "pre copy files: serial: 4"
 
 COPY ./config/ /srv/config/
 

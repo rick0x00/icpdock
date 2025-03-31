@@ -23,6 +23,7 @@ function config_backup_with_git() {
 
     local git_path="/var/www/html/config/"
 
+    cd $git_path
     git init .
     git config --global --add safe.directory ${git_path}
     git add .

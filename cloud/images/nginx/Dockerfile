@@ -35,7 +35,7 @@ RUN \
     openssl dhparam -out /etc/nginx/dhparam.pem 4096
 
 RUN \
-    echo "pre copy files: serial: 3"
+    echo "pre copy files: serial: 5"
 
 COPY ./config/ /srv/config/
 

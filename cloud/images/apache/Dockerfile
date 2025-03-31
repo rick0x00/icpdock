@@ -60,7 +60,7 @@ RUN \
     a2enmod headers
 
 RUN \
-    echo "pre copy files: serial: 2"
+    echo "pre copy files: serial: 3"
 
 COPY ./config/ /srv/config/
 

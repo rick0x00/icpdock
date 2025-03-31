@@ -48,6 +48,7 @@ function config_backup_with_git() {
 
     local git_repo="/etc/nginx/"
 
+    cd $git_path
     git init .
     git config --global --add safe.directory ${git_repo}
     git add .

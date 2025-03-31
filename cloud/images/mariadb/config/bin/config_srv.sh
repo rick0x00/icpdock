@@ -34,6 +34,7 @@ function config_backup_with_git() {
 
     local git_path="/var/lib/mysql/"
 
+    cd $git_path
     git init .
     git config --global --add safe.directory ${git_path}
     git add .
@@ -43,6 +44,7 @@ function config_backup_with_git() {
 
     local git_path="/etc/mysql/"
 
+    cd $git_path
     git init .
     git config --global --add safe.directory ${git_path}
     git add .
