@@ -204,7 +204,7 @@ function config_wordpress() {
     function config_wordpress_files_permissions() {
         log_message "# Setting wordpress permissions"
         #/usr/local/bin/config_wordpress_permissions.sh 
-        (crontab -l ; echo "@reboot bash /usr/local/bin/config_wordpress_permissions.sh")| crontab - 
+        (crontab -l ; echo "0 3 * * 0 bash /usr/local/bin/config_wordpress_permissions.sh")| crontab - 
     }
 
     log_message "# copy files to correct APP path <${WEB_APP_ROOT_PATH_CLIENT}>"
