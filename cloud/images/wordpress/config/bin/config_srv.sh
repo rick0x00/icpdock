@@ -274,7 +274,7 @@ function config_backup_with_git() {
 function config_backup() {
     log_message "## SETTING Backup"
     ## setting crontab
-    (crontab -l ; echo "0 1 * * 0 bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 '${WEB_APP_ROOT_PATH_CLIENT}'")| crontab - 
+    (crontab -l ; echo "0 1 * * 0 mysqldump -h\"${DATABASE_HOST}\" -u\"${DATABASE_APP_USER}\" -p\"${DATABASE_APP_PASS}\" ${DATABASE_SCHEMA_NAME} > /tmp/dump_db_wordpress-$(hostname).sql && bash /usr/local/bin/backup.sh -d '/var/backups/' -r 4 \"${WEB_APP_ROOT_PATH_CLIENT}\" \"/tmp/dump_db_wordpress-$(hostname).sql\" && rm -f /tmp/dump_db_wordpress-$(hostname).sql  ")| crontab - 
     mkdir -p /var/backups/
 }
 
