@@ -37,27 +37,25 @@ volumes:
   apache_etc_supervisor:
   apache_srv_config:
   apache_var_log:
-  apache_var_www:
-  apache_etc_apache2:
   apache_var_spool_cron:
-  apache_etc_letsencrypt:
+  apache_etc_apache2:
 
 # NGINX(volume) ############################################
-  nginx_etc_nginx:
+  nginx_root:
+  nginx_usr_local_bin:
   nginx_etc_supervisor:
   nginx_srv_config:
-  nginx_usr_local_bin:
-  nginx_root:
   nginx_var_log:
+  nginx_var_spool_cron:
+  nginx_etc_nginx:
 
 # certbot(volume) ############################################
+  certbot_root:
+  certbot_usr_local_bin:
   certbot_etc_supervisor:
   certbot_srv_config:
   certbot_var_log:
   certbot_var_spool_cron:
-  certbot_usr_local_bin:
-  certbot_root:
-  #wordpress_var_www:
   #certbot_etc_letsencrypt:
 
 # wordpress(volume) ############################################
@@ -66,20 +64,22 @@ volumes:
   wordpress_etc_supervisor:
   wordpress_srv_config:
   wordpress_var_log:
-  #wordpress_var_www:
-  wordpress_etc_apache2:
   wordpress_var_spool_cron:
+  #wordpress_var_www:
 
 # mariadb_wordpress(volume) ############################################
-  mariadb_wordpress_var_lib_mysql:
   mariadb_wordpress_root:
-  mariadb_wordpress_etc_supervisor:
   mariadb_wordpress_usr_local_bin:
-  mariadb_wordpress_etc_mysql:
+  mariadb_wordpress_etc_supervisor:
+#  mariadb_wordpress_srv_config:
   mariadb_wordpress_var_log:
   mariadb_wordpress_var_spool_cron:
+  mariadb_wordpress_var_lib_mysql:
+  mariadb_wordpress_etc_mysql:
 
 # nextcloud(volume) ############################################
+#  nextcloud_wordpress_root:
+#  nextcloud_wordpress_var_log:
   nextcloud_var_www_html:
   nextcloud_var_www_html_custom_apps:
   nextcloud_var_www_html_config:
@@ -87,13 +87,14 @@ volumes:
   #nextcloud_var_www_html_data:
   
 # mariadb_nextcloud(volume) ############################################
-  mariadb_nextcloud_var_lib_mysql:
   mariadb_nextcloud_root:
-  mariadb_nextcloud_etc_supervisor:
   mariadb_nextcloud_usr_local_bin:
-  mariadb_nextcloud_etc_mysql:
+  mariadb_nextcloud_etc_supervisor:
+#  mariadb_nextcloud_srv_config:
   mariadb_nextcloud_var_log:
   mariadb_nextcloud_var_spool_cron:
+  mariadb_nextcloud_var_lib_mysql:
+  mariadb_nextcloud_etc_mysql:
 
     
 #######################################################
@@ -131,10 +132,8 @@ services:
       - apache_etc_supervisor:/etc/supervisor/ # pouco importante, somente garantia dos inicializadores adequados
       - apache_srv_config:/srv/config/ # pouco importante, garantia de scrips de inicializacao corretos
       - apache_var_log:/var/log/
-      #- apache_var_www:/var/www/
       - apache_etc_apache2:/etc/apache2/
       - apache_var_spool_cron:/var/spool/cron/
-      #- apache_etc_letsencrypt:/etc/letsencrypt
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-enabled/:/etc/apache2/sites-enabled/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-available/:/etc/apache2/sites-available/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/var/backups/:/var/backups/
@@ -180,6 +179,7 @@ services:
       - nginx_usr_local_bin:/usr/local/bin
       - nginx_root:/root
       - nginx_var_log:/var/log
+      - nginx_var_spool_cron:/var/spool/cron/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/backups/:/var/backups/
       #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
