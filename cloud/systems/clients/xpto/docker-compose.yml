@@ -39,6 +39,11 @@ volumes:
   apache_var_log:
   apache_var_spool_cron:
   apache_etc_apache2:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   device: ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/
+    #   o: bind
 
 # NGINX(volume) ############################################
   nginx_root:
@@ -48,6 +53,11 @@ volumes:
   nginx_var_log:
   nginx_var_spool_cron:
   nginx_etc_nginx:
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   device: ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/
+    #   o: bind
 
 # certbot(volume) ############################################
   certbot_root:
@@ -136,6 +146,7 @@ services:
       - apache_var_spool_cron:/var/spool/cron/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-enabled/:/etc/apache2/sites-enabled/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/sites-available/:/etc/apache2/sites-available/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/snippets/:/etc/apache2/snippets/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/var/backups/:/var/backups/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserver/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/:ro
@@ -184,7 +195,8 @@ services:
       #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-enabled/:/etc/nginx/sites-enabled/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/sites-available/:/etc/nginx/sites-available/
-      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
+      #- ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/nginx/etc/nginx/security/:/etc/nginx/security/
+      - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/apache/etc/apache2/snippets/:/etc/apache2/snippets/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/webserver/var/www/:/var/www/
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/wordpress/var/www/wordpress/:/var/www/wordpress/:ro
       - ${STORAGE_ROOT_PATH}/${CONTEXT_NAME}/certbot/etc/letsencrypt/:/etc/letsencrypt/:ro
