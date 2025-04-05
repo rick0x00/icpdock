@@ -57,7 +57,22 @@ RUN \
     a2enmod proxy_http && \
     a2enmod proxy_fcgi && \
     a2enmod ssl && \
-    a2enmod headers
+    a2enmod headers && \
+    a2enmod expires && \
+    a2enmod substitute
+
+## Install and enable Mod Security
+RUN \
+    apt install libapache2-mod-security2 libmodsecurity3 modsecurity-crs -y && \
+    mv -n /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf || echo "already exists" && \
+    a2enmod security2  && \
+    sed -i 's/^SecRuleEngine.*/SecRuleEngine On/' /etc/modsecurity/modsecurity.conf && \
+    sed -i 's/^SecAuditLogParts.*/SecAuditLogParts ABCEFHJKZ/' /etc/modsecurity/modsecurity.conf && \
+    cd /etc/apache2/ && git clone https://github.com/coreruleset/coreruleset.git && \
+    cd /etc/apache2/coreruleset && cp crs-setup.conf.example crs-setup.conf && \
+    sed -i '/IncludeOptional \/usr\/share\/modsecurity-crs\/\*.load/ s/^/#/' /etc/apache2/mods-enabled/security2.conf && \
+    sed -i '/IncludeOptional \/usr\/share\/modsecurity-crs\/\*.load/a Include /etc/apache2/coreruleset/crs-setup.conf\nInclude /etc/apache2/coreruleset/rules/*.conf' /etc/apache2/mods-enabled/security2.conf
+    
 
 RUN \
     echo "pre copy files: serial: 4"
