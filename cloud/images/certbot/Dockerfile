@@ -35,7 +35,7 @@ RUN \
     /opt/certbot/bin/pip install certbot certbot-nginx certbot-apache certbot-dns-cloudflare && \
     ln -s /opt/certbot/bin/certbot /usr/bin/certbot
 
-RUN echo 9;
+RUN echo 10;
 
 COPY ./config/ /srv/config/
 #COPY ./../scripts/healthcheck.sh /srv/config/bin/

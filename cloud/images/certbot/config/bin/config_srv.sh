@@ -17,7 +17,7 @@ function config_certbot() {
 	log_message "## SETTING CERTBOT"
 	log_message " - Creating Certificate"
 
-    if [[ "${STARTUP_PROVISION_CERTIFICATE}" == "[Tt][Rr][Uu][Ee]" ]]; then
+    if [[ "${STARTUP_PROVISION_CERTIFICATE}" =~ ^[Tt][Rr][Uu][Ee]$ ]]; then
         log_message " - Starting Certificate Provision"
 
         check_vars CERTBOT_CERTIFICATE_TYPE CERTBOT_CERTIFICATE_PLUGIN CERTBOT_CERTIFICATE_SITE_DOMAIN CERTBOT_CERTIFICATE_EMAIL
