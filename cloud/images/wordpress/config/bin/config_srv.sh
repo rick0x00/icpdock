@@ -191,8 +191,8 @@ function config_wordpress() {
         cd ${WEB_APP_ROOT_PATH_CLIENT}
         su - www-data -s /bin/bash -c "wp --path=\"${WEB_APP_ROOT_PATH_CLIENT}\" plugin install ${wp_plugins}"
         su - www-data -s /bin/bash -c "wp --path=\"${WEB_APP_ROOT_PATH_CLIENT}\" theme install ${wp_themes}"
-        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" plugin install ${wp_plugins}
-        wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" theme install ${wp_themes}
+        #wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" plugin install ${wp_plugins}
+        #wp --allow-root --path="${WEB_APP_ROOT_PATH_CLIENT}" theme install ${wp_themes}
     }
 
     function config_wordpress_updater() {
