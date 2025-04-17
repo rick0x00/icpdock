@@ -1,0 +1,245 @@
+FROM debian:stable
+
+# Install tools
+RUN \
+    apt update && \
+    apt install -y net-tools iproute2 traceroute iputils-ping mtr && \
+    apt install -y tcpdump nmap netcat-traditional && \
+    apt install -y dnsutils && \
+    apt install -y procps htop && \
+    apt install -y nano vim && \
+    apt install -y mc && \
+    apt install -y wget curl && \
+    apt install -y cron && \
+    apt install -y rsyslog && \
+    apt install -y unzip && \
+    apt install -y git
+
+# Install network filters
+RUN \
+    apt install -y iptables nftables
+
+# Install supervisor
+RUN \
+    apt install -y supervisor
+ 
+# create self signed certificates
+RUN \
+    mkdir -p /etc/ssl/nginx/  && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/nginx/nginx-selfsigned.key -out /etc/ssl/nginx/nginx-selfsigned.crt -subj "/C=BR/ST=State/L=Province/O=xpto/OU=SRE/CN=xpto.com"  && \
+    openssl dhparam -out /etc/ssl/nginx/dhparam.pem 4096
+
+
+# Install build dependencies and required libraries
+RUN apt update && apt install -y \
+    build-essential \
+    libpcre3-dev \
+    libssl-dev \
+    zlib1g-dev \
+    libxslt1-dev \
+    libxslt-dev \
+    libgd-dev \
+    libgeoip-dev \
+    libperl-dev \
+    libpam0g-dev \
+    libedit-dev \
+    libxml2-dev \
+    #libluajit-5.1-dev \
+    libyajl-dev \
+    libgd-dev \
+    libmaxminddb-dev \
+    git curl ca-certificates unzip
+
+
+RUN apt install -y libpcre2-dev
+
+# Set working directory for source code and compilation
+WORKDIR /usr/src
+
+RUN git clone https://github.com/LuaJIT/LuaJIT.git luajit  && \
+    cd luajit  && \
+    git checkout v2.1  && \
+    make && make install PREFIX=/usr/local
+
+ARG LUAJIT_LIB=/usr/local/lib
+ARG LUAJIT_INC=/usr/local/include/luajit-2.1 
+
+
+# Define NGINX version to be compiled
+ARG NGINX_VERSION=1.27.4
+
+
+# Also create a directory for the external modules and clone them from their repositories.
+RUN \
+    mkdir -p nginx-modules && cd nginx-modules && \
+    git clone https://github.com/openresty/headers-more-nginx-module.git http-headers-more-filter && \
+    git clone https://github.com/stogh/ngx_http_auth_pam_module.git http-auth-pam && \
+    git clone https://github.com/FRiCKLE/ngx_cache_purge.git http-cache-purge && \
+    git clone https://github.com/arut/nginx-dav-ext-module.git http-dav-ext && \
+    git clone https://github.com/simpl/ngx_devel_kit.git http-ndk && \
+    git clone https://github.com/openresty/echo-nginx-module.git http-echo && \
+    git clone https://github.com/aperezdc/ngx-fancyindex.git http-fancyindex && \
+    git clone https://github.com/leev/ngx_http_geoip2_module.git http-geoip2 && \
+    git clone https://github.com/slact/nchan.git nchan && \
+    git clone https://github.com/openresty/lua-nginx-module.git http-lua && \
+    git clone https://github.com/arut/nginx-rtmp-module.git rtmp && \
+    git clone https://github.com/masterzen/nginx-upload-progress-module.git http-uploadprogress && \
+    git clone https://github.com/gnosek/nginx-upstream-fair.git http-upstream-fair && \
+    git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git http-subs-filter && \
+    git clone https://github.com/nbs-system/naxsi.git extra-naxsi && \
+    git clone --recursive https://github.com/cloudflare/quiche extra-quiche
+
+# Download NGINX source code and extract it;
+RUN curl -O http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar zxvf nginx-${NGINX_VERSION}.tar.gz
+
+# Change working directory to the NGINX source directory for configuration
+WORKDIR /usr/src/nginx-${NGINX_VERSION}
+
+
+# Configure, build, and install NGINX with the modules as dynamic libraries.
+RUN ./configure \
+    --with-cc-opt='-g -O2 -ffile-prefix-map=/build/reproducible-path/nginx-1.18.0=. -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2'  \
+    --with-ld-opt='-Wl,-z,relro -Wl,-z,now -fPIC'  \
+    --prefix=/usr/share/nginx \
+    --conf-path=/etc/nginx/nginx.conf \
+    --http-log-path=/var/log/nginx/access.log \
+    --error-log-path=/var/log/nginx/error.log \
+    --lock-path=/var/lock/nginx.lock \
+    --pid-path=/run/nginx.pid \
+    --modules-path=/usr/share/nginx/modules \
+    --http-client-body-temp-path=/var/lib/nginx/body \
+    --http-fastcgi-temp-path=/var/lib/nginx/fastcgi \
+    --http-proxy-temp-path=/var/lib/nginx/proxy \
+    --http-scgi-temp-path=/var/lib/nginx/scgi \
+    --http-uwsgi-temp-path=/var/lib/nginx/uwsgi \
+    --with-compat \
+    --with-debug \
+    --with-pcre-jit \
+    --with-http_ssl_module \
+    --with-http_stub_status_module \
+    --with-http_realip_module \
+    --with-http_auth_request_module \
+    --with-http_v2_module \
+    --with-http_dav_module \
+    --with-http_slice_module \
+    --with-threads \
+    --with-http_addition_module \
+    --with-http_flv_module \
+    --with-http_geoip_module=dynamic \
+    --with-http_gunzip_module \
+    --with-http_gzip_static_module \
+    --with-http_image_filter_module=dynamic \
+    --with-http_mp4_module \
+    --with-http_perl_module=dynamic \
+    --with-http_random_index_module \
+    --with-http_secure_link_module \
+    --with-http_sub_module \
+    --with-http_xslt_module=dynamic \
+    --with-mail=dynamic \
+    --with-mail_ssl_module \
+    --with-stream=dynamic \
+    --with-stream_geoip_module=dynamic \
+    --with-stream_ssl_module \
+    --with-stream_ssl_preread_module \
+    --add-dynamic-module=../nginx-modules/http-headers-more-filter \
+    --add-dynamic-module=../nginx-modules/http-auth-pam \
+    --add-dynamic-module=../nginx-modules/http-cache-purge \
+    --add-dynamic-module=../nginx-modules/http-dav-ext \
+    --add-dynamic-module=../nginx-modules/http-ndk \
+    --add-dynamic-module=../nginx-modules/http-echo \
+    --add-dynamic-module=../nginx-modules/http-fancyindex \
+    --add-dynamic-module=../nginx-modules/http-geoip2 \
+    --add-dynamic-module=../nginx-modules/nchan \
+    --add-dynamic-module=../nginx-modules/http-lua \
+    --add-dynamic-module=../nginx-modules/rtmp \
+    --add-dynamic-module=../nginx-modules/http-uploadprogress \
+    --add-dynamic-module=../nginx-modules/http-subs-filter
+
+#    --add-dynamic-module=../nginx-modules/extra-naxsi/naxsi_src
+
+#    --add-dynamic-module=../nginx-modules/http-upstream-fair \
+    # --with-http_v3_module \
+    # --with-openssl=../nginx-modules/extra-quiche/deps/boringssl \
+    # --with-quiche=../nginx-modules/extra-quiche
+
+RUN make -j$(nproc)
+RUN make install
+
+RUN ln -s /usr/share/nginx/sbin/nginx /usr/sbin/nginx
+
+ARG CONF_PATH="/etc/nginx"
+
+# Create the symlinks
+RUN \
+    mkdir -p /usr/share/nginx/modules-available/  && \
+    echo 'load_module modules/ngx_http_auth_pam_module.so;' > /usr/share/nginx/modules-available/mod-http-auth-pam.conf  && \
+    echo 'load_module modules/ngx_http_cache_purge_module.so;' > /usr/share/nginx/modules-available/mod-http-cache-purge.conf  && \
+    echo 'load_module modules/ngx_http_dav_ext_module.so;' > /usr/share/nginx/modules-available/mod-http-dav-ext.conf  && \
+    echo 'load_module modules/ngx_http_echo_module.so;' > /usr/share/nginx/modules-available/mod-http-echo.conf  && \
+    echo 'load_module modules/ngx_http_fancyindex_module.so;' > /usr/share/nginx/modules-available/mod-http-fancyindex.conf  && \
+    echo 'load_module modules/ngx_http_geoip_module.so;' > /usr/share/nginx/modules-available/mod-http-geoip.conf  && \
+    echo 'load_module modules/ngx_http_geoip2_module.so;' > /usr/share/nginx/modules-available/mod-http-geoip2.conf  && \
+    echo 'load_module modules/ngx_http_headers_more_filter_module.so;' > /usr/share/nginx/modules-available/mod-http-headers-more-filter.conf  && \
+    echo 'load_module modules/ngx_http_image_filter_module.so;' > /usr/share/nginx/modules-available/mod-http-image-filter.conf  && \
+    echo 'load_module modules/ngx_http_lua_module.so;' > /usr/share/nginx/modules-available/mod-http-lua.conf  && \
+    echo 'load_module modules/ndk_http_module.so;' > /usr/share/nginx/modules-available/mod-http-ndk.conf  && \
+    echo 'load_module modules/ngx_http_perl_module.so;' > /usr/share/nginx/modules-available/mod-http-perl.conf  && \
+    echo 'load_module modules/ngx_http_subs_filter_module.so;' > /usr/share/nginx/modules-available/mod-http-subs-filter.conf  && \
+    echo 'load_module modules/ngx_http_uploadprogress_module.so;' > /usr/share/nginx/modules-available/mod-http-uploadprogress.conf  && \
+    echo 'load_module modules/ngx_http_upstream_fair_module.so;' > /usr/share/nginx/modules-available/mod-http-upstream-fair.conf  && \
+    echo 'load_module modules/ngx_http_xslt_filter_module.so;' > /usr/share/nginx/modules-available/mod-http-xslt-filter.conf  && \
+    echo 'load_module modules/ngx_mail_module.so;' > /usr/share/nginx/modules-available/mod-mail.conf  && \
+    echo 'load_module modules/ngx_nchan_module.so;' > /usr/share/nginx/modules-available/mod-nchan.conf  && \
+    echo 'load_module modules/ngx_stream_geoip_module.so;' > /usr/share/nginx/modules-available/mod-stream-geoip.conf  && \
+    echo 'load_module modules/ngx_stream_geoip2_module.so;' > /usr/share/nginx/modules-available/mod-stream-geoip2.conf  && \
+    echo 'load_module modules/ngx_stream_module.so;' > /usr/share/nginx/modules-available/mod-stream.conf
+
+RUN \
+    mkdir -p ${CONF_PATH}/modules-enabled && \
+    mkdir -p ${CONF_PATH}/modules-available && \
+    ln -s /usr/share/nginx/modules-available/mod-http-ndk.conf ${CONF_PATH}/modules-enabled/10-mod-http-ndk.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-auth-pam.conf ${CONF_PATH}/modules-enabled/50-mod-http-auth-pam.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-cache-purge.conf ${CONF_PATH}/modules-enabled/50-mod-http-cache-purge.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-dav-ext.conf ${CONF_PATH}/modules-enabled/50-mod-http-dav-ext.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-echo.conf ${CONF_PATH}/modules-enabled/50-mod-http-echo.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-fancyindex.conf ${CONF_PATH}/modules-enabled/50-mod-http-fancyindex.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-geoip.conf ${CONF_PATH}/modules-enabled/50-mod-http-geoip.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-geoip2.conf ${CONF_PATH}/modules-enabled/50-mod-http-geoip2.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-headers-more-filter.conf ${CONF_PATH}/modules-enabled/50-mod-http-headers-more-filter.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-image-filter.conf ${CONF_PATH}/modules-enabled/50-mod-http-image-filter.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-lua.conf ${CONF_PATH}/modules-enabled/50-mod-http-lua.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-perl.conf ${CONF_PATH}/modules-enabled/50-mod-http-perl.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-subs-filter.conf ${CONF_PATH}/modules-enabled/50-mod-http-subs-filter.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-uploadprogress.conf ${CONF_PATH}/modules-enabled/50-mod-http-uploadprogress.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-upstream-fair.conf ${CONF_PATH}/modules-enabled/50-mod-http-upstream-fair.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-http-xslt-filter.conf ${CONF_PATH}/modules-enabled/50-mod-http-xslt-filter.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-mail.conf ${CONF_PATH}/modules-enabled/50-mod-mail.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-nchan.conf ${CONF_PATH}/modules-enabled/50-mod-nchan.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-stream.conf ${CONF_PATH}/modules-enabled/50-mod-stream.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-stream-geoip.conf ${CONF_PATH}/modules-enabled/70-mod-stream-geoip.conf && \
+    ln -s /usr/share/nginx/modules-available/mod-stream-geoip2.conf ${CONF_PATH}/modules-enabled/70-mod-stream-geoip2.conf
+
+
+RUN \
+    mkdir -p /var/lib/nginx/body  && \
+    mkdir -p /var/lib/nginx/fastcgi && \
+    mkdir -p /var/lib/nginx/proxy && \
+    mkdir -p /var/lib/nginx/scgi && \
+    mkdir -p /var/lib/nginx/uwsgi && \
+    mkdir -p /var/log/nginx 
+
+
+COPY ./config/nginx/nginx.initd /etc/init.d/nginx
+COPY ./config/nginx-confd/conf.d/ /etc/nginx/conf.d/
+COPY ./config/nginx-confd/nginx.conf /etc/nginx/nginx.conf
+
+
+# Expose default HTTP and HTTPS ports
+EXPOSE 80 443
+
+# Run NGINX in the foreground
+#CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
+
+# only for debug
+ENTRYPOINT ["sleep", "infinity"] 

@@ -1,0 +1,163 @@
+FROM debian:stable
+
+# Install tools
+RUN \
+    apt update && \
+    apt install -y net-tools iproute2 traceroute iputils-ping mtr && \
+    apt install -y tcpdump nmap netcat-traditional && \
+    apt install -y dnsutils && \
+    apt install -y procps htop && \
+    apt install -y nano vim && \
+    apt install -y mc && \
+    apt install -y wget curl && \
+    apt install -y cron && \
+    apt install -y rsyslog && \
+    apt install -y unzip && \
+    apt install -y git
+
+# Install network filters
+RUN \
+    apt install -y iptables nftables
+
+# Install supervisor
+RUN \
+    apt install -y supervisor
+ 
+# create self signed certificates
+RUN \
+    mkdir -p /etc/ssl/nginx/  && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/nginx/nginx-selfsigned.key -out /etc/ssl/nginx/nginx-selfsigned.crt -subj "/C=BR/ST=State/L=Province/O=xpto/OU=SRE/CN=xpto.com"  && \
+    openssl dhparam -out /etc/ssl/nginx/dhparam.pem 4096
+
+# Install required software to build modules
+RUN  apt-get install -y build-essential ca-certificates \
+                dpkg-dev zlib1g-dev libgd-dev libgeoip-dev \
+                libpcre3-dev libperl-dev libssl-dev libxslt1-dev \
+                gzip git tar wget
+
+# RUN apt install -y libpcre2-dev
+
+# Install nginx
+RUN \
+    apt install -y nginx nginx-extras
+
+# Set working directory for source code and compilation
+WORKDIR /usr/src
+
+# # ARG NAXSI_VERSION=1.7
+
+# # RUN \
+# #     mkdir -p nginx-modules && cd nginx-modules && \
+# #     wget "https://github.com/wargio/naxsi/releases/download/$NAXSI_VERSION/naxsi-$NAXSI_VERSION-src-with-deps.tar.gz"  && \
+# #     mkdir -p extra-naxsi  && \
+# #     tar -C extra-naxsi -xzf naxsi-$NAXSI_VERSION-src-with-deps.tar.gz 
+
+RUN \
+    mkdir -p nginx-modules && \
+    cd nginx-modules && \
+    git clone --recursive https://github.com/wargio/naxsi.git naxsi
+
+RUN \
+    OS_CODENAME=$(cat /etc/os-release | grep VERSION_CODENAME | awk -F '=' '{print $2}') && \
+    echo "deb-src http://deb.debian.org/debian ${OS_CODENAME} main" > /etc/apt/sources.list && \
+    echo "deb-src http://security.debian.org/debian-security ${OS_CODENAME} main" > /etc/apt/sources.list
+
+RUN \
+    apt update && \
+    apt source nginx 
+
+RUN \
+    cd nginx-$(nginx -v 2>&1 | awk -F '/' '{print $2}')  && \
+    NGINX_BUILD_FLAGS=$(nginx -V 2>&1 | grep "configure arguments:" | cut -d ":" -f2- | sed -e "s#/build/nginx-[A-Za-z0-9]*/#./#g" | sed 's/--add-dynamic-module=[A-Za-z0-9\/\._-]*//g')  && \
+    bash -c "./configure  $NGINX_BUILD_FLAGS --add-dynamic-module=../nginx-modules/naxsi/naxsi_src" && \
+    make modules
+
+ARG MODULE_ROOT_PATH="/usr/share/nginx"
+ARG CONF_PATH="/etc/nginx"
+
+# enable naxsi
+RUN cd nginx-$(nginx -v 2>&1 | awk -F '/' '{print $2}') && cp objs/ngx_http_naxsi_module.so  ${MODULE_ROOT_PATH}/modules/
+
+RUN \
+    mkdir -p ${MODULE_ROOT_PATH}/modules-available/  && \
+    echo 'load_module modules/ngx_http_naxsi_module.so;' > ${MODULE_ROOT_PATH}/modules-available/mod-http_naxsi.conf
+
+RUN \
+    mkdir -p ${CONF_PATH}/modules-enabled && \    
+    ln -s ${MODULE_ROOT_PATH}/modules-available/mod-http_naxsi.conf ${CONF_PATH}/modules-enabled/90-mod-http_naxsi.conf
+
+# disable server banner
+RUN \
+    echo "server_tokens off;" > /etc/nginx/conf.d/disable_server_banner.conf && \
+    echo "more_clear_headers Server;" >> /etc/nginx/conf.d/disable_server_banner.conf
+
+RUN \
+    echo "pre copy files: serial: 5"
+
+COPY ./config/ /srv/config/
+
+RUN \
+    cp -r /srv/config/bin/* /usr/local/bin/ && \
+    chmod ug+x /usr/local/bin/*
+
+
+###################################################################
+
+## Generic Variables
+ENV CLIENT_NAME="xpto"
+ENV SYSTEM_NAME="nginx"
+
+## set reconfigurations trigger
+ENV FORCE_RECONFIG="false"
+## set healthcheck execution trigger
+ENV HEALTHCHECK_ENABLED="true"
+
+## web server settings
+ENV SITE_HTTP_PORT="80"
+ENV SITE_HTTPS_PORT="443"
+
+
+###################################################################
+
+VOLUME /var/www/
+VOLUME /etc/nginx/
+VOLUME /etc/supervisor/
+
+VOLUME /srv/config/
+VOLUME /var/log/
+VOLUME /usr/local/bin/
+VOLUME /root/
+VOLUME /var/backups/
+
+
+###################################################################
+
+# HTTP port
+#EXPOSE 80/tcp
+EXPOSE ${SITE_HTTP_PORT}/tcp
+
+# HTTPS port
+#EXPOSE 443/tcp
+EXPOSE ${SITE_HTTPS_PORT}/tcp
+
+###################################################################
+
+WORKDIR /etc/nginx/
+
+###################################################################
+
+# interval: time between tests
+# timeout: time to consider failure
+# start-period: time for the container to start(failures will not be counted)
+# start-interval: time between each test within "start-period"
+# retries: number of failures to consider that the container is not healtly
+
+
+HEALTHCHECK --interval=60s --timeout=120s --start-period=240s --retries=5 CMD /usr/local/bin/healthcheck.sh --process nginx --attempts 3 && /usr/local/bin/healthcheck.sh --host 127.0.0.1 --port 80 --attempts 3 || exit 1
+
+###################################################################
+
+ENTRYPOINT ["/usr/local/bin/init_srv.sh"] 
+#CMD ["/usr/sbin/cron","-f"]
+#ENTRYPOINT ["sleep", "infinity"]
+

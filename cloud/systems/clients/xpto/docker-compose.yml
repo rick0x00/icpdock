@@ -175,6 +175,7 @@ services:
     hostname: ${CLIENT_NAME}-nginx
     build:
       context: ${IMAGE_ROOT_PATH}/nginx
+      dockerfile: Dockerfile.with_naxsi
     profiles:
       - "nginx"
     restart: always

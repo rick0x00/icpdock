@@ -1,10 +1,10 @@
-FROM debian:11
+FROM debian:stable
 
 # Install tools
 RUN \
     apt update && \
     apt install -y net-tools iproute2 traceroute iputils-ping mtr && \
-    apt install -y tcpdump nmap netcat && \
+    apt install -y tcpdump nmap netcat-traditional && \
     apt install -y dnsutils && \
     apt install -y procps htop && \
     apt install -y nano vim && \
@@ -32,7 +32,7 @@ RUN \
 
 # Install nginx
 RUN \
-apt install -y nginx apt-get nginx-extras
+apt install -y nginx nginx-extras
 
 # disable server banner
 RUN \
